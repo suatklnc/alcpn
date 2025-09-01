@@ -283,7 +283,7 @@
               "9.1"
             ],
             "details": "Create a workflow that triggers on pushes to the `main` and `develop` branches. The workflow should include jobs to: 1) Install dependencies, 2) Run linter (ESLint) and formatter (Prettier) checks, 3) Execute automated tests, 4) Trigger a Vercel deployment. The deployment step should pass the appropriate Vercel tokens and project IDs as secrets.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Push a commit to a feature branch to ensure the workflow does not trigger. Push a commit to the `develop` branch and verify all jobs (lint, test, deploy) execute successfully, resulting in a new preview deployment on Vercel."
           },
           {
@@ -294,7 +294,7 @@
               "9.1"
             ],
             "details": "Install the `@sentry/nextjs` package. Run the Sentry wizard (`npx @sentry/wizard@latest -i nextjs`) or manually create the necessary configuration files (`sentry.client.config.ts`, `sentry.server.config.ts`, `next.config.mjs`). Use the `SENTRY_DSN` environment variable configured in Vercel.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "After deployment, manually trigger a client-side error (e.g., via a button that calls a non-existent function) and a server-side error (e.g., in an API route or Server Component). Verify that both errors appear in the Sentry project dashboard with relevant stack traces and context."
           },
           {
@@ -305,7 +305,7 @@
               "9.1"
             ],
             "details": "In the Vercel project dashboard, navigate to the 'Analytics' tab and enable it. Install the `@vercel/analytics` package and add the `<Analytics />` component to the root layout (`app/layout.tsx`) of the Next.js application. Also, enable 'Speed Insights' from the Vercel dashboard.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "After deploying the changes, visit several pages of the live application. Return to the Vercel Analytics dashboard after a short period and confirm that page views and performance scores (Core Web Vitals) are being recorded."
           },
           {
@@ -318,7 +318,7 @@
               "9.4"
             ],
             "details": "Create a pull request from `develop` to `main`. After approval, merge the PR. Monitor the GitHub Actions workflow to ensure the production deployment job runs and succeeds. Access the production URL to confirm the latest changes are live. Re-verify that Sentry is active and Vercel Analytics is collecting data for the production domain.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": "Confirm the GitHub Action triggered on the merge to `main` and completed successfully. Check the production URL and verify its functionality. Review Sentry and Vercel Analytics dashboards to ensure they are receiving data from the production environment."
           }
         ]
@@ -340,7 +340,7 @@
     ],
     "metadata": {
       "created": "2025-09-01T13:33:23.157Z",
-      "updated": "2025-09-01T18:41:56.986Z",
+      "updated": "2025-09-01T18:55:44.331Z",
       "description": "Tasks for master context"
     }
   }
