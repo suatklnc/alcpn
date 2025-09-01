@@ -21,7 +21,10 @@ export interface ScrapingServiceResult {
 export class ScrapingService {
   private scraper: ConfigurableScraper;
   private cache: RedisCache;
-  private rateLimiter: RateLimiter;
+  private rateLimiter: RateLimiter | { 
+    checkLimit: (id: string) => Promise<{ success: boolean; remaining: number; reset: Date; retryAfter?: number }>; 
+    getStats: (id: string) => Promise<{ limit: number; remaining: number; reset: Date }> 
+  };
   private config: Required<ScrapingServiceConfig>;
 
   constructor(config: ScrapingServiceConfig = {}) {
@@ -34,11 +37,24 @@ export class ScrapingService {
 
     this.scraper = new ConfigurableScraper();
     this.cache = new RedisCache();
-    this.rateLimiter = new RateLimiter({
-      requests: parseInt(process.env.RATE_LIMIT_REQUESTS_PER_MINUTE || '60'),
-      window: '1 m',
-      prefix: 'alcpn:scraping',
-    });
+    
+    // Rate limiter'ı sadece Redis varsa etkinleştir
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+    
+    if (redisUrl && redisToken && redisUrl !== 'your_redis_url_here') {
+      this.rateLimiter = new RateLimiter({
+        requests: parseInt(process.env.RATE_LIMIT_REQUESTS_PER_MINUTE || '60'),
+        window: '1 m',
+        prefix: 'alcpn:scraping',
+      });
+    } else {
+      // Mock rate limiter for development
+      this.rateLimiter = {
+        checkLimit: async () => ({ success: true, remaining: 60, reset: new Date(), retryAfter: 0 }),
+        getStats: async () => ({ limit: 60, remaining: 60, reset: new Date() }),
+      };
+    }
 
     // Varsayılan scraping kurallarını yükle
     this.loadDefaultRules();

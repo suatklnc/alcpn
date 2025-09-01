@@ -16,28 +16,48 @@ export interface RateLimitResult {
 }
 
 export class RateLimiter {
-  private ratelimit: Ratelimit;
+  private ratelimit: Ratelimit | null;
   private config: RateLimitConfig;
 
   constructor(config: RateLimitConfig) {
     this.config = config;
     
-    const redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    });
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+    
+    if (!redisUrl || !redisToken || redisUrl === 'your_redis_url_here') {
+      console.warn('Redis environment variables not configured, using mock rate limiter');
+      // Mock rate limiter for development
+      this.ratelimit = null;
+    } else {
+      const redis = new Redis({
+        url: redisUrl,
+        token: redisToken,
+      });
 
-    this.ratelimit = new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(config.requests, config.window as '1 m' | '1 h' | '1 d'),
-      prefix: config.prefix || 'alcpn:ratelimit',
-    });
+      this.ratelimit = new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(config.requests, config.window as '1 m' | '1 h' | '1 d'),
+        prefix: config.prefix || 'alcpn:ratelimit',
+      });
+    }
   }
 
   /**
    * Rate limit kontrolü yap
    */
   async checkLimit(identifier: string): Promise<RateLimitResult> {
+    if (!this.ratelimit) {
+      // Mock rate limiter - her zaman başarılı
+      return {
+        success: true,
+        limit: this.config.requests,
+        remaining: this.config.requests,
+        reset: new Date(Date.now() + 60000), // 1 dakika sonra
+        retryAfter: 0,
+      };
+    }
+    
     try {
       const result = await this.ratelimit.limit(identifier);
       
@@ -64,13 +84,23 @@ export class RateLimiter {
    * Rate limit'i reset et (Redis key'ini sil)
    */
   async resetLimit(identifier: string): Promise<void> {
+    if (!this.ratelimit) {
+      console.warn('Redis not configured, skipping rate limit reset');
+      return;
+    }
+    
     try {
       // @upstash/ratelimit'te reset metodu yok, Redis key'ini manuel olarak silelim
-      const redis = new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL!,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-      });
-      await redis.del(`${this.config.prefix || 'alcpn:ratelimit'}:${identifier}`);
+      const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+      const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+      
+      if (redisUrl && redisToken && redisUrl !== 'your_redis_url_here') {
+        const redis = new Redis({
+          url: redisUrl,
+          token: redisToken,
+        });
+        await redis.del(`${this.config.prefix || 'alcpn:ratelimit'}:${identifier}`);
+      }
     } catch (error) {
       console.error('Rate limit reset error:', error);
     }
@@ -84,6 +114,15 @@ export class RateLimiter {
     remaining: number;
     reset: Date;
   }> {
+    if (!this.ratelimit) {
+      // Mock rate limiter stats
+      return {
+        limit: this.config.requests,
+        remaining: this.config.requests,
+        reset: new Date(Date.now() + 60000), // 1 dakika sonra
+      };
+    }
+    
     try {
       const result = await this.ratelimit.limit(identifier);
       return {

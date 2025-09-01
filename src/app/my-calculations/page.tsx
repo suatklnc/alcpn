@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CalendarIcon, CalculatorIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, CalculatorIcon, CurrencyDollarIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 interface CalculationHistory {
   id: string;
@@ -18,6 +18,7 @@ export default function MyCalculationsPage() {
   const [calculations, setCalculations] = useState<CalculationHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCalculations();
@@ -76,6 +77,31 @@ export default function MyCalculationsPage() {
       cift_kat_cift_iskelet: 'Çift Kat Çift İskelet',
     };
     return labels[subType] || subType;
+  };
+
+  const handleDeleteCalculation = async (id: string) => {
+    if (!confirm('Bu hesaplamayı silmek istediğinizden emin misiniz?')) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      const response = await fetch(`/api/user/calculations/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Hesaplama silinemedi');
+      }
+
+      // Başarılı silme sonrası listeyi güncelle
+      setCalculations(prev => prev.filter(calc => calc.id !== id));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Hesaplama silinemedi');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (isLoading) {
@@ -194,13 +220,31 @@ export default function MyCalculationsPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-6">
+                  <div className="mt-6 space-y-2">
                     <Link
                       href={`/calculation/${calculation.id}`}
                       className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                       Detayları Görüntüle
                     </Link>
+                    
+                    <button
+                      onClick={() => handleDeleteCalculation(calculation.id)}
+                      disabled={deletingId === calculation.id}
+                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {deletingId === calculation.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
+                          Siliniyor...
+                        </>
+                      ) : (
+                        <>
+                          <TrashIcon className="h-4 w-4 mr-2" />
+                          Sil
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>

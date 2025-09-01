@@ -12,7 +12,7 @@ export interface CacheResult<T> {
 }
 
 export class RedisCache {
-  private redis: Redis;
+  private redis: Redis | null;
   private config: Required<CacheConfig>;
 
   constructor(config: CacheConfig = {}) {
@@ -22,11 +22,20 @@ export class RedisCache {
       ...config,
     };
 
-    // Redis client'ı oluştur
-    this.redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    });
+    // Redis client'ı oluştur - environment variable kontrolü ile
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+    const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+    
+    if (!redisUrl || !redisToken || redisUrl === 'your_redis_url_here') {
+      console.warn('Redis environment variables not configured, using mock cache');
+      // Mock Redis instance for development
+      this.redis = null;
+    } else {
+      this.redis = new Redis({
+        url: redisUrl,
+        token: redisToken,
+      });
+    }
   }
 
   /**
@@ -40,6 +49,11 @@ export class RedisCache {
    * Veriyi cache'e kaydet
    */
   async set<T>(key: string, data: T, ttl?: number): Promise<void> {
+    if (!this.redis) {
+      console.warn('Redis not configured, skipping cache set');
+      return;
+    }
+    
     const cacheKey = this.createKey(key);
     const ttlSeconds = ttl || this.config.defaultTTL;
     
@@ -55,6 +69,11 @@ export class RedisCache {
    * Cache'den veri al
    */
   async get<T>(key: string): Promise<CacheResult<T> | null> {
+    if (!this.redis) {
+      console.warn('Redis not configured, skipping cache get');
+      return null;
+    }
+    
     const cacheKey = this.createKey(key);
     
     try {
@@ -108,6 +127,11 @@ export class RedisCache {
    * Cache'den veri sil
    */
   async delete(key: string): Promise<void> {
+    if (!this.redis) {
+      console.warn('Redis not configured, skipping cache delete');
+      return;
+    }
+    
     const cacheKey = this.createKey(key);
     
     try {
@@ -121,6 +145,11 @@ export class RedisCache {
    * Pattern'e uygun tüm key'leri sil
    */
   async deletePattern(pattern: string): Promise<void> {
+    if (!this.redis) {
+      console.warn('Redis not configured, skipping cache delete pattern');
+      return;
+    }
+    
     const searchPattern = this.createKey(pattern);
     
     try {
@@ -152,6 +181,14 @@ export class RedisCache {
     memoryUsage: string;
     hitRate?: number;
   }> {
+    if (!this.redis) {
+      console.warn('Redis not configured, returning mock stats');
+      return {
+        totalKeys: 0,
+        memoryUsage: 'Redis not configured',
+      };
+    }
+    
     try {
       const keys = await this.redis.keys(this.createKey('*'));
       
@@ -172,6 +209,11 @@ export class RedisCache {
    * Cache key'inin TTL'sini kontrol et
    */
   async getTTL(key: string): Promise<number> {
+    if (!this.redis) {
+      console.warn('Redis not configured, returning -1 for TTL');
+      return -1;
+    }
+    
     const cacheKey = this.createKey(key);
     
     try {
@@ -186,6 +228,11 @@ export class RedisCache {
    * Cache key'inin TTL'sini güncelle
    */
   async updateTTL(key: string, ttl: number): Promise<void> {
+    if (!this.redis) {
+      console.warn('Redis not configured, skipping TTL update');
+      return;
+    }
+    
     const cacheKey = this.createKey(key);
     
     try {

@@ -264,7 +264,7 @@
           7,
           8
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -318,7 +318,7 @@
               "9.4"
             ],
             "details": "Create a pull request from `develop` to `main`. After approval, merge the PR. Monitor the GitHub Actions workflow to ensure the production deployment job runs and succeeds. Access the production URL to confirm the latest changes are live. Re-verify that Sentry is active and Vercel Analytics is collecting data for the production domain.",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": "Confirm the GitHub Action triggered on the merge to `main` and completed successfully. Check the production URL and verify its functionality. Review Sentry and Vercel Analytics dashboards to ensure they are receiving data from the production environment."
           }
         ]
@@ -334,13 +334,13 @@
           6,
           7
         ],
-        "status": "To Do",
+        "status": "done",
         "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-09-01T13:33:23.157Z",
-      "updated": "2025-09-01T18:55:44.331Z",
+      "updated": "2025-09-01T19:10:58.852Z",
       "description": "Tasks for master context"
     }
   }

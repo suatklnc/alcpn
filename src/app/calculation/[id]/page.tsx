@@ -8,7 +8,8 @@ import {
   CalculatorIcon, 
   CalendarIcon, 
   DocumentDuplicateIcon,
-  ShareIcon
+  ShareIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 
 interface CalculationDetail {
@@ -40,6 +41,7 @@ export default function CalculationDetailPage() {
   const [calculation, setCalculation] = useState<CalculationDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -164,6 +166,33 @@ ${calculation.calculation_result.materials.map(m =>
     }
   };
 
+  const handleDeleteCalculation = async () => {
+    if (!calculation) return;
+    
+    if (!confirm('Bu hesaplamayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      const response = await fetch(`/api/user/calculations/${calculation.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Hesaplama silinemedi');
+      }
+
+      // Başarılı silme sonrası hesaplama geçmişine yönlendir
+      router.push('/my-calculations');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Hesaplama silinemedi');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
@@ -237,6 +266,23 @@ ${calculation.calculation_result.materials.map(m =>
               >
                 <ShareIcon className="h-4 w-4 mr-2" />
                 Paylaş
+              </button>
+              <button
+                onClick={handleDeleteCalculation}
+                disabled={isDeleting}
+                className="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
+                    Siliniyor...
+                  </>
+                ) : (
+                  <>
+                    <TrashIcon className="h-4 w-4 mr-2" />
+                    Sil
+                  </>
+                )}
               </button>
             </div>
           </div>
