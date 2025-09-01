@@ -1,0 +1,11 @@
+# Task ID: 6
+# Title: Integrate Pricing into Calculation Results
+# Status: To Do
+# Dependencies: 2, 3
+# Priority: high
+# Description: Connect the calculation results with the pricing system to display estimated costs and create a scheduled job for price updates.
+# Details:
+Modify the `/api/calculate` endpoint to fetch the latest prices for calculated materials. Update the UI to display unit price, total price, and overall estimated cost. Implement the logic to save calculation results to the database. Create a Vercel cron job to periodically update prices.
+
+# Test Strategy:
+Perform an end-to-end test: enter an area, get a calculation, and verify that prices are displayed and the total cost is correct. Check the database to ensure calculation history is saved. Monitor the cron job logs.

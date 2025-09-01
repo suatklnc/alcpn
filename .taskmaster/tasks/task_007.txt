@@ -1,0 +1,11 @@
+# Task ID: 7
+# Title: Implement User Account Features (History & Saving)
+# Status: To Do
+# Dependencies: 1, 6
+# Priority: medium
+# Description: Allow registered users to view their past calculations and save/name them for future reference.
+# Details:
+Create the `/api/user/calculations` endpoint to fetch a user's calculation history. Develop a 'My Calculations' page to list past calculations. Implement the detail view for a past calculation on the `/calculation/[id]` page.
+
+# Test Strategy:
+As a logged-in user, perform a calculation and verify it appears in the history. Test that clicking a historical calculation correctly loads its details. Ensure a user can only see their own calculations.

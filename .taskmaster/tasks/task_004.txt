@@ -1,0 +1,11 @@
+# Task ID: 4
+# Title: Create Admin Panel for Scraping Management
+# Status: To Do
+# Dependencies: 1, 3
+# Priority: medium
+# Description: Develop an admin-only section to manage scraping sources and custom material URLs.
+# Details:
+Create the database tables: `scraping_sources` and `custom_scraping_urls`. Build API endpoints for CRUD operations on sources and custom URLs. Develop the frontend UI for the `/admin/scraping-urls` page. Implement role-based access control to restrict this section to admin users.
+
+# Test Strategy:
+Test all admin API endpoints. Verify that only users with an 'admin' role can access the admin panel. Manually test the CRUD functionality in the admin UI.

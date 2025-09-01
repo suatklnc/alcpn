@@ -1,0 +1,11 @@
+# Task ID: 5
+# Title: Implement URL Tester and Preview Tool
+# Status: To Do
+# Dependencies: 4
+# Priority: medium
+# Description: Create a tool within the admin panel to test custom scraping URLs and CSS selectors in real-time.
+# Details:
+Develop the `/api/custom-urls/[id]/test` endpoint that takes a URL and selectors, performs a live scrape, and returns the result. Build the frontend UI for the `/admin/url-tester` page to input a URL, CSS selectors, and see a live preview of the scraped data.
+
+# Test Strategy:
+Test the test API endpoint with various valid and invalid URLs and selectors. Manually test the UI to ensure it provides clear feedback on success or failure.

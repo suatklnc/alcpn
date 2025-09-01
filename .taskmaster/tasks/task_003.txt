@@ -1,0 +1,11 @@
+# Task ID: 3
+# Title: Develop Backend Web Scraping Service
+# Status: To Do
+# Dependencies: 1
+# Priority: high
+# Description: Build the core web scraping service to fetch material prices from external sources using Puppeteer/Cheerio and implement caching with Redis.
+# Details:
+Set up Puppeteer/Cheerio for web scraping. Implement `BaseScraper` and `ConfigurableScraper` classes. Integrate Upstash Redis for caching scraped price data. Implement rate limiting using `@upstash/ratelimit` to avoid being blocked.
+
+# Test Strategy:
+Write integration tests for each scraper to ensure it can correctly fetch and parse prices. Test the caching logic to verify that subsequent requests return a cached result. Test the rate limiting middleware.

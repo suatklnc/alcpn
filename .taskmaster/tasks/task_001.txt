@@ -1,0 +1,61 @@
+# Task ID: 1
+# Title: Core Infrastructure and Project Setup
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Initialize the Next.js project, integrate with Supabase for database and authentication, and set up the basic frontend layout and component structure.
+# Details:
+Initialize Next.js 15 project with App Router. Configure Supabase client for PostgreSQL DB, Auth, and Storage. Implement basic user authentication (login/logout/signup) using Supabase Auth. Create the main responsive layout (Header, Footer) using Tailwind CSS. Set up ESLint, Prettier, and project structure as per PRD.
+
+# Test Strategy:
+Verify project builds successfully. Test user registration and login flows. Check that the main layout is responsive on mobile and desktop. Run `lint` and `type-check` scripts to ensure code quality.
+
+# Subtasks:
+## 1. Next.js 15 Projesi Kurulumu [done]
+### Dependencies: None
+### Description: Next.js 15 projesini App Router ile başlat ve temel yapıyı oluştur
+### Details:
+- Next.js 15 projesi oluştur (npx create-next-app@latest)
+- App Router yapısını kullan
+- TypeScript desteği ekle
+- Temel klasör yapısını oluştur (app, components, lib, types)
+
+## 2. Supabase Entegrasyonu [done]
+### Dependencies: 1.1
+### Description: Supabase client'ını yapılandır ve veritabanı bağlantısını kur
+### Details:
+- Supabase projesi oluştur
+- Supabase client'ını yapılandır
+- Environment variables ayarla
+- PostgreSQL veritabanı bağlantısını test et
+
+## 3. Kullanıcı Kimlik Doğrulama [done]
+### Dependencies: 1.2
+### Description: Supabase Auth ile login/logout/signup işlevlerini implement et
+### Details:
+- Supabase Auth yapılandırması
+- Login sayfası oluştur
+- Register sayfası oluştur
+- Logout işlevi ekle
+- Auth context/provider oluştur
+
+## 4. Tailwind CSS ve Layout Yapısı [done]
+### Dependencies: 1.1
+### Description: Tailwind CSS kurulumu ve responsive layout (Header, Footer) oluştur
+### Details:
+- Tailwind CSS kurulumu ve yapılandırması
+- Header component oluştur
+- Footer component oluştur
+- Main layout wrapper oluştur
+- Responsive tasarım test et
+
+## 5. ESLint, Prettier ve Proje Yapılandırması [done]
+### Dependencies: 1.1
+### Description: Code quality araçlarını kur ve proje yapısını PRD'ye göre düzenle
+### Details:
+- ESLint yapılandırması
+- Prettier yapılandırması
+- Package.json scripts ekle (lint, type-check, build)
+- Git ignore dosyası oluştur
+- README.md oluştur
+

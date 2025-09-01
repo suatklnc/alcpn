@@ -1,0 +1,40 @@
+# Task ID: 2
+# Title: Develop Calculation Engine and UI
+# Status: in-progress
+# Dependencies: 1
+# Priority: high
+# Description: Implement the business logic for calculating material quantities based on user input (m²) and build the corresponding user interface.
+# Details:
+Create backend services for all calculation modules (Düz Tavan, Giydirme Duvar, etc.) using the specified coefficients. Develop the main calculation form on the homepage using React Hook Form and Zod for validation. Build the `ResultsPanel` component to display the calculated list of materials and quantities.
+
+# Test Strategy:
+Write unit tests for each calculation function to verify correctness. Perform UI testing to ensure form validation works as expected. Manually verify that the output in the `ResultsPanel` matches the expected calculations.
+
+# Subtasks:
+## 1. Hesaplama Motoru ve Tipler [pending]
+### Dependencies: None
+### Description: Malzeme hesaplama motorunu ve gerekli TypeScript tiplerini oluştur
+### Details:
+- Malzeme hesaplama tiplerini tanımla (MaterialType, CalculationResult, etc.)
+- Hesaplama motoru fonksiyonlarını oluştur (Düz Tavan, Giydirme Duvar, etc.)
+- Hesaplama katsayılarını tanımla
+- Unit test'ler yaz
+
+## 2. Hesaplama Formu ve Validasyon [pending]
+### Dependencies: 2.1
+### Description: Ana hesaplama formunu React Hook Form ve Zod ile oluştur
+### Details:
+- React Hook Form ve Zod paketlerini kur
+- Hesaplama formu component'ini oluştur
+- Form validasyon kurallarını tanımla
+- Form state yönetimini implement et
+
+## 3. Sonuç Paneli ve Hesaplayıcı Sayfası [pending]
+### Dependencies: 2.1, 2.2
+### Description: Hesaplama sonuçlarını gösteren panel ve hesaplayıcı sayfasını oluştur
+### Details:
+- ResultsPanel component'ini oluştur
+- Hesaplayıcı sayfasını (/calculator) oluştur
+- Sonuçları tablo formatında göster
+- Responsive tasarım uygula
+
