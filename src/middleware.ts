@@ -26,6 +26,14 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // Handle auth callback
+  if (request.nextUrl.pathname.startsWith('/auth/callback')) {
+    const code = request.nextUrl.searchParams.get('code');
+    if (code) {
+      await supabase.auth.exchangeCodeForSession(code);
+    }
+  }
+
   // Refresh session if expired - required for Server Components
   await supabase.auth.getUser();
 
