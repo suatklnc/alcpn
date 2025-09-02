@@ -23,6 +23,10 @@ export async function POST(request: NextRequest) {
       selectedMaterials = []
     } = body;
 
+    // Debug: customPrices'ı kontrol et
+    console.log('API received customPrices:', customPrices);
+    console.log('API received body:', body);
+
     // Validation
     if (!jobType || !subType || !area || area <= 0) {
       return NextResponse.json(

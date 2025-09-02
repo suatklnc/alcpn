@@ -43,6 +43,7 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
 
   const watchedIsTuru = watch('isTuru');
   const watchedAltTuru = watch('altTuru');
+  const watchedCustomPrices = watch('customPrices');
 
   // İş türü veya alt tür değiştiğinde mevcut malzemeleri güncelle
   useEffect(() => {
@@ -59,6 +60,23 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
     setIsCalculating(true);
     
     try {
+      // Boş olmayan customPrices'ları filtrele
+      const filteredCustomPrices = data.customPrices 
+        ? Object.fromEntries(
+            Object.entries(data.customPrices).filter(([_, value]) => 
+              value !== undefined && value !== null && value !== '' && !isNaN(Number(value))
+            )
+          )
+        : {};
+
+      // Debug: Form verilerini kontrol et (gerekirse açılabilir)
+      // console.log('Form data being sent:', {
+      //   jobType: data.isTuru,
+      //   subType: data.altTuru,
+      //   area: data.area,
+      //   customPrices: filteredCustomPrices,
+      // });
+      
       // API'yi kullanarak hesaplama yap
       const response = await fetch('/api/calculate', {
         method: 'POST',
@@ -69,7 +87,7 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
           jobType: data.isTuru,
           subType: data.altTuru,
           area: data.area,
-          customPrices: data.customPrices,
+          customPrices: filteredCustomPrices,
         }),
       });
 
@@ -105,10 +123,12 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
 
   const updateCustomPrice = (materialType: string, price: number) => {
     const currentPrices = getValues('customPrices') || {};
-    setValue('customPrices', {
+    const newPrices = {
       ...currentPrices,
       [materialType]: price,
-    });
+    };
+    // console.log('Updating custom price:', { materialType, price, newPrices });
+    setValue('customPrices', newPrices);
   };
 
   const getMaterialName = (materialType: string) => {
@@ -216,8 +236,14 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
                     max="10000"
                     onChange={(e) => {
                       const price = parseFloat(e.target.value);
-                      if (!isNaN(price)) {
+                      if (!isNaN(price) && price > 0) {
                         updateCustomPrice(materialType, price);
+                      } else {
+                        // Boş değer girildiğinde customPrices'tan kaldır
+                        const currentPrices = getValues('customPrices') || {};
+                        const newPrices = { ...currentPrices };
+                        delete newPrices[materialType];
+                        setValue('customPrices', newPrices);
                       }
                     }}
                     className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900"
