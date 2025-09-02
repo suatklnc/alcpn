@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CalculationEngine } from '@/lib/calculation-engine';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
+    // Server-side Supabase ile authentication kontrolü
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     
     const { 
@@ -11,8 +20,7 @@ export async function POST(request: NextRequest) {
       subType, 
       area, 
       customPrices = {},
-      selectedMaterials = [],
-      userId = 'anonymous' // TODO: Gerçek user ID kullan
+      selectedMaterials = []
     } = body;
 
     // Validation
@@ -40,13 +48,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Supabase'e bağlan
-    const supabase = createAdminClient();
+    const adminSupabase = createAdminClient();
 
                     // Hesaplama sonucunu database'e kaydet
-                const { data: savedCalculation, error: saveError } = await supabase
+                const { data: savedCalculation, error: saveError } = await adminSupabase
                   .from('calculation_history')
                   .insert({
-                    user_id: userId,
+                    user_id: user.id,
                     job_type: jobType,
                     sub_type: subType,
                     area: area,

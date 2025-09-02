@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 
 // GET /api/user/calculations/[id] - Belirli bir hesaplamanın detaylarını getir
 export async function GET(
@@ -9,17 +10,22 @@ export async function GET(
   try {
     const { id } = await params;
     
-    // TODO: Gerçek authentication ile user ID al
-    const userId = 'anonymous'; // Şimdilik development için
+    // Server-side Supabase ile authentication kontrolü
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    const supabase = createAdminClient();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const adminSupabase = createAdminClient();
     
     // Hesaplama detaylarını getir
-    const { data: calculation, error } = await supabase
+    const { data: calculation, error } = await adminSupabase
       .from('calculation_history')
       .select('*')
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .single();
 
     if (error) {
@@ -56,17 +62,22 @@ export async function DELETE(
   try {
     const { id } = await params;
     
-    // TODO: Gerçek authentication ile user ID al
-    const userId = 'anonymous'; // Şimdilik development için
+    // Server-side Supabase ile authentication kontrolü
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    const supabase = createAdminClient();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const adminSupabase = createAdminClient();
     
     // Önce hesaplamanın kullanıcıya ait olup olmadığını kontrol et
-    const { data: existingCalculation, error: checkError } = await supabase
+    const { data: existingCalculation, error: checkError } = await adminSupabase
       .from('calculation_history')
       .select('id')
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .single();
 
     if (checkError || !existingCalculation) {
@@ -77,11 +88,11 @@ export async function DELETE(
     }
 
     // Hesaplamayı sil
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await adminSupabase
       .from('calculation_history')
       .delete()
       .eq('id', id)
-      .eq('user_id', userId);
+      .eq('user_id', user.id);
 
     if (deleteError) {
       console.error('Error deleting calculation:', deleteError);
