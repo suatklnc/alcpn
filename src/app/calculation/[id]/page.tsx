@@ -239,7 +239,7 @@ ${calculation.calculation_result.materials.map(m =>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
             <div>
               <Link
                 href="/my-calculations"
@@ -248,24 +248,24 @@ ${calculation.calculation_result.materials.map(m =>
                 <ArrowLeftIcon className="h-4 w-4 mr-1" />
                 Hesaplama Geçmişi
               </Link>
-              <h1 className="text-3xl font-bold text-gray-900">Hesaplama Detayları</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Hesaplama Detayları</h1>
             </div>
             
             {/* Action Buttons */}
-            <div className="flex space-x-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={copyToClipboard}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
                 <DocumentDuplicateIcon className="h-4 w-4 mr-2" />
-                Kopyala
+                <span className="hidden sm:inline">Kopyala</span>
               </button>
               <button
                 onClick={shareCalculation}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
                 <ShareIcon className="h-4 w-4 mr-2" />
-                Paylaş
+                <span className="hidden sm:inline">Paylaş</span>
               </button>
               <button
                 onClick={handleDeleteCalculation}
@@ -275,12 +275,12 @@ ${calculation.calculation_result.materials.map(m =>
                 {isDeleting ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
-                    Siliniyor...
+                    <span className="hidden sm:inline">Siliniyor...</span>
                   </>
                 ) : (
                   <>
                     <TrashIcon className="h-4 w-4 mr-2" />
-                    Sil
+                    <span className="hidden sm:inline">Sil</span>
                   </>
                 )}
               </button>
@@ -290,43 +290,43 @@ ${calculation.calculation_result.materials.map(m =>
 
         {/* Calculation Summary Card */}
         <div className="bg-white shadow rounded-lg mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-medium text-gray-900">Hesaplama Özeti</h2>
           </div>
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="px-4 sm:px-6 py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div className="space-y-4">
                 <div className="flex items-center">
-                  <CalculatorIcon className="h-5 w-5 text-blue-600 mr-3" />
-                  <div>
+                  <CalculatorIcon className="h-5 w-5 text-blue-600 mr-3 flex-shrink-0" />
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-500">İş Türü</p>
-                    <p className="text-sm text-gray-900">{getJobTypeLabel(calculation.job_type)}</p>
+                    <p className="text-sm text-gray-900 truncate">{getJobTypeLabel(calculation.job_type)}</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-3">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-3 flex-shrink-0">
                     {getSubTypeLabel(calculation.sub_type)}
                   </span>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-500">Alt Tür</p>
-                    <p className="text-sm text-gray-900">{getSubTypeLabel(calculation.sub_type)}</p>
+                    <p className="text-sm text-gray-900 truncate">{getSubTypeLabel(calculation.sub_type)}</p>
                   </div>
                 </div>
               </div>
               
               <div className="space-y-4">
                 <div className="flex items-center">
-                  <div className="w-2 h-2 bg-green-400 rounded-full mr-3"></div>
-                  <div>
+                  <div className="w-2 h-2 bg-green-400 rounded-full mr-3 flex-shrink-0"></div>
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-500">Alan</p>
                     <p className="text-sm text-gray-900">{calculation.area} m²</p>
                   </div>
                 </div>
                 
                 <div className="flex items-center">
-                  <CalendarIcon className="h-5 w-5 text-gray-400 mr-3" />
-                  <div>
+                  <CalendarIcon className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-500">Tarih</p>
                     <p className="text-sm text-gray-900">{formatDate(calculation.created_at)}</p>
                   </div>
@@ -336,7 +336,7 @@ ${calculation.calculation_result.materials.map(m =>
             
             {/* Total Cost */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                 <span className="text-lg font-medium text-gray-900">Toplam Maliyet</span>
                 <span className="text-2xl font-bold text-green-600">
                   {formatCurrency(calculation.total_cost)}
@@ -348,10 +348,12 @@ ${calculation.calculation_result.materials.map(m =>
 
         {/* Materials Breakdown */}
         <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-medium text-gray-900">Malzeme Detayları</h2>
           </div>
-          <div className="overflow-hidden">
+          
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -406,6 +408,40 @@ ${calculation.calculation_result.materials.map(m =>
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden">
+            {calculation.calculation_result.materials.map((material, index) => (
+              <div key={index} className="px-4 py-4 border-b border-gray-200 last:border-b-0">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-medium text-gray-900">
+                      {getMaterialLabel(material.materialType)}
+                    </h3>
+                    <p className="text-xs text-gray-500">Katsayı: {material.coefficient}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">
+                      {formatCurrency(material.totalPrice)}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">Miktar</p>
+                    <p className="text-gray-900">{formatNumber(material.quantity)} {material.unit}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Birim Fiyat</p>
+                    <p className="text-gray-900">{formatCurrency(material.unitPrice)}</p>
+                    {calculation.custom_prices[material.materialType] && (
+                      <p className="text-xs text-blue-600">Özel fiyat</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

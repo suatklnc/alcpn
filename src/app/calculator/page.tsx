@@ -36,18 +36,18 @@ export default function CalculatorPage() {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
+      <div className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Malzeme Hesaplayıcı
           </h1>
-          <p className="mt-2 text-lg text-gray-600">
+          <p className="mt-2 text-base sm:text-lg text-gray-600">
             Malzeme miktarlarını ve maliyetlerini kolayca hesaplayın
           </p>
         </div>
 
         {/* Mode Selector */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
             <button
               onClick={() => setMode('single')}

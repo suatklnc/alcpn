@@ -18,13 +18,13 @@ export default function Home() {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900">
             <span className="block">Malzeme Hesaplama</span>
             <span className="block text-indigo-600">Uygulaması</span>
           </h1>
-          <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-500">
+          <p className="mt-4 sm:mt-6 max-w-2xl mx-auto text-lg sm:text-xl text-gray-500">
             Malzeme miktarlarını hesaplayın, güncel fiyatları görün ve
             projelerinizi optimize edin.
           </p>
@@ -92,7 +92,7 @@ export default function Home() {
           )}
 
           {/* Features Grid */}
-          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 sm:mt-16 grid grid-cols-1 gap-6 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3">
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white mb-4">
                 <svg
