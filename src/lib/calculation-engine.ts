@@ -8,7 +8,7 @@ import {
   DuvarTuru,
   MATERIAL_COEFFICIENTS,
 } from '@/types/calculation';
-import { createClient } from '@/lib/supabase/server';
+import { getMaterialsForJobType } from '@/lib/material-utils';
 
 // Hesaplama motoru sınıfı
 export class CalculationEngine {
@@ -16,10 +16,7 @@ export class CalculationEngine {
   private static cacheTimestamp: number = 0;
   private static CACHE_DURATION = 5 * 60 * 1000; // 5 dakika
 
-  // Malzeme bilgilerini getir
-  static getMaterialInfo(materialType: MaterialType): MaterialInfo {
-    return MATERIAL_COEFFICIENTS[materialType];
-  }
+
 
   // Varsayılan birim fiyatı getir (Sadece Supabase'den güncel fiyatları al)
   static async getUnitPrice(materialType: MaterialType): Promise<number> {
@@ -44,28 +41,41 @@ export class CalculationEngine {
     }
 
     try {
-      // Server-side'da doğrudan Supabase'den veri çek
-      const supabase = await createClient();
-      const { data, error } = await supabase
-        .from('material_prices')
-        .select('material_type, unit_price');
+      // Environment detection: Server-side vs Client-side
+      if (typeof window === 'undefined') {
+        // Server-side: Doğrudan Supabase'den veri çek
+        const { createClient } = await import('@/lib/supabase/server');
+        const supabase = await createClient();
+        const { data, error } = await supabase
+          .from('material_prices')
+          .select('material_type, unit_price');
 
-      if (error) {
-        console.error('Error fetching material prices from Supabase:', error);
-        return {};
+        if (error) {
+          console.error('Error fetching material prices from Supabase:', error);
+          return {};
+        }
+
+        // Veriyi Record<string, number> formatına çevir
+        const prices: Record<string, number> = {};
+        if (data) {
+          data.forEach(item => {
+            prices[item.material_type] = item.unit_price;
+          });
+        }
+
+        this.materialPricesCache = prices;
+        this.cacheTimestamp = now;
+        return prices;
+      } else {
+        // Client-side: API endpoint kullan
+        const response = await fetch('/api/material-prices');
+        if (response.ok) {
+          const prices = await response.json();
+          this.materialPricesCache = prices;
+          this.cacheTimestamp = now;
+          return prices;
+        }
       }
-
-      // Veriyi Record<string, number> formatına çevir
-      const prices: Record<string, number> = {};
-      if (data) {
-        data.forEach(item => {
-          prices[item.material_type] = item.unit_price;
-        });
-      }
-
-      this.materialPricesCache = prices;
-      this.cacheTimestamp = now;
-      return prices;
     } catch (error) {
       console.error('Error fetching material prices:', error);
     }
@@ -79,12 +89,12 @@ export class CalculationEngine {
     const { area, isTuru, altTuru, unitPrice, customPrices } = params;
     
     // Hangi malzemelerin hesaplanacağını belirle
-    const materials = this.getMaterialsForJobType(isTuru, altTuru);
+    const materials = getMaterialsForJobType(isTuru, altTuru);
     
     const results: CalculationResult[] = [];
     
     for (const materialType of materials) {
-      const materialInfo = this.getMaterialInfo(materialType);
+      const materialInfo = MATERIAL_COEFFICIENTS[materialType];
       const quantity = area * materialInfo.coefficient;
       
       // Önce customPrices'tan, sonra genel unitPrice'tan, son olarak güncel fiyattan al
@@ -107,87 +117,7 @@ export class CalculationEngine {
     return results;
   }
 
-  // İş türüne göre malzemeleri belirle
-  static getMaterialsForJobType(
-    isTuru: IsTuru, 
-    altTuru: TavanTuru | DuvarTuru
-  ): MaterialType[] {
-    if (isTuru === 'tavan') {
-      return this.getTavanMalzemeleri(altTuru as TavanTuru);
-    } else {
-      return this.getDuvarMalzemeleri(altTuru as DuvarTuru);
-    }
-  }
 
-  // Tavan malzemeleri (alcpn.md'den)
-  private static getTavanMalzemeleri(tavanTuru: TavanTuru): MaterialType[] {
-    switch (tavanTuru) {
-      case 'duz_tavan':
-        return [
-          'beyaz_alcipan',
-          'c_profili',
-          'u_profili',
-          'aski_teli',
-          'aski_masasi',
-          'klips',
-          'vida',
-        ];
-      case 'karopan_tavan':
-        return [
-          't_ana_tasiyici',
-          'tali_120_tasiyici',
-          'tali_60_tasiyici',
-          'plaka',
-          'u_profili',
-          'aski_teli',
-          'vida',
-        ];
-      case 'klipin_tavan':
-        return [
-          'omega',
-          'plaka',
-          'u_profili',
-          'aski_teli',
-          'vida',
-        ];
-      default:
-        return [];
-    }
-  }
-
-  // Duvar malzemeleri (alcpn.md'den)
-  private static getDuvarMalzemeleri(duvarTuru: DuvarTuru): MaterialType[] {
-    switch (duvarTuru) {
-      case 'giydirme_duvar':
-        return [
-          'u_profili',
-          'c_profili',
-          'vida_25',
-          'alcipan',
-          'agraf',
-          'dubel_civi',
-        ];
-      case 'tek_kat_tek_iskelet':
-        return [
-          'u_profili',
-          'c_profili',
-          'vida_35',
-          'alcipan',
-          'dubel_civi',
-        ];
-      case 'cift_kat_cift_iskelet':
-        return [
-          'u_profili',
-          'c_profili',
-          'vida_25',
-          'vida_35',
-          'alcipan',
-          'dubel_civi',
-        ];
-      default:
-        return [];
-    }
-  }
 
   // Çoklu malzeme hesaplama (API için güncellenmiş)
   static async calculateMultipleMaterials(
@@ -209,13 +139,13 @@ export class CalculationEngine {
       if (selectedMaterials && selectedMaterials.length > 0) {
         materials = selectedMaterials;
       } else {
-        materials = this.getMaterialsForJobType(jobType, subType);
+        materials = getMaterialsForJobType(jobType, subType);
       }
 
       const results: CalculationResult[] = [];
       
       for (const materialType of materials) {
-        const materialInfo = this.getMaterialInfo(materialType);
+        const materialInfo = MATERIAL_COEFFICIENTS[materialType];
         const quantity = area * materialInfo.coefficient;
         
         // Önce customPrices'tan, sonra güncel fiyattan al
@@ -316,17 +246,3 @@ export class CalculationEngine {
   }
 }
 
-// Yardımcı fonksiyonlar
-export const formatCurrency = (value: number): string => {
-  return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: 'TRY',
-  }).format(value);
-};
-
-export const formatNumber = (value: number): string => {
-  return new Intl.NumberFormat('tr-TR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(value);
-};

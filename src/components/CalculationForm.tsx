@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { calculationFormSchema } from '@/lib/validation/calculation-schema';
-import { CalculationEngine } from '@/lib/calculation-engine';
+import { getMaterialsForJobType, getMaterialInfo } from '@/lib/material-utils';
 import { CalculationResult } from '@/types/calculation';
 import { useAuth } from '@/lib/auth-context';
 
@@ -85,7 +85,7 @@ export default function CalculationForm({ onCalculate, refreshKey }: Calculation
 
   // İş türü veya alt tür değiştiğinde mevcut malzemeleri güncelle
   useEffect(() => {
-    const materials = CalculationEngine.getMaterialsForJobType(watchedIsTuru, watchedAltTuru);
+    const materials = getMaterialsForJobType(watchedIsTuru, watchedAltTuru);
     setAvailableMaterials(materials);
   }, [watchedIsTuru, watchedAltTuru]);
 
@@ -170,7 +170,7 @@ export default function CalculationForm({ onCalculate, refreshKey }: Calculation
   };
 
   const getMaterialName = (materialType: string) => {
-    const materialInfo = CalculationEngine.getMaterialInfo(materialType as 'beyaz_alcipan' | 'c_profili' | 'u_profili' | 'aski_teli' | 'aski_masasi' | 'klips' | 'vida' | 't_ana_tasiyici' | 'tali_120_tasiyici' | 'tali_60_tasiyici' | 'plaka' | 'omega' | 'alcipan' | 'agraf' | 'dubel_civi' | 'vida_25' | 'vida_35');
+    const materialInfo = getMaterialInfo(materialType as 'beyaz_alcipan' | 'c_profili' | 'u_profili' | 'aski_teli' | 'aski_masasi' | 'klips' | 'vida' | 't_ana_tasiyici' | 'tali_120_tasiyici' | 'tali_60_tasiyici' | 'plaka' | 'omega' | 'alcipan' | 'agraf' | 'dubel_civi' | 'vida_25' | 'vida_35');
     return materialInfo.name;
   };
 

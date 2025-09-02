@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { CalculationResult } from '@/types/calculation';
-import { formatCurrency, formatNumber, CalculationEngine } from '@/lib/calculation-engine';
+import { formatCurrency, formatNumber, calculateTotalCost } from '@/lib/utils';
 
 interface ResultsPanelProps {
   results: CalculationResult[];
@@ -47,7 +47,7 @@ export default function ResultsPanel({
     );
   }
 
-  const totalCost = CalculationEngine.calculateTotalCost(results);
+  const totalCost = calculateTotalCost(results);
 
   const handleSave = () => {
     if (onSave && saveName.trim()) {

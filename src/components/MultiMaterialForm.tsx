@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { multiMaterialFormSchema } from '@/lib/validation/calculation-schema';
-import { CalculationEngine } from '@/lib/calculation-engine';
+import { getAvailableMaterials } from '@/lib/material-utils';
 import { CalculationResult } from '@/types/calculation';
 import { materialTypeLabels } from '@/lib/validation/calculation-schema';
 import { useAuth } from '@/lib/auth-context';
@@ -85,7 +85,7 @@ export default function MultiMaterialForm({ onCalculate, refreshKey }: MultiMate
   }, []);
 
   // İş türüne göre mevcut malzemeleri getir
-  const availableMaterials = CalculationEngine.getAvailableMaterials(watchedIsTuru);
+  const availableMaterials = getAvailableMaterials(watchedIsTuru);
 
   const toggleMaterial = (materialType: string) => {
     const currentMaterials = getValues('selectedMaterials') || [];
