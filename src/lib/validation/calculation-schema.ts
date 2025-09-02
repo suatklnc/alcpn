@@ -51,12 +51,6 @@ export const calculationFormSchema = z.object({
     ),
   isTuru: isTuruEnum,
   altTuru: z.union([tavanTuruEnum, duvarTuruEnum]),
-  customUnitPrice: z
-    .number()
-    .min(0, 'Birim fiyat negatif olamaz')
-    .max(10000, 'Birim fiyat en fazla 10,000 TL olabilir')
-    .optional()
-    .nullable(),
 });
 
 // Çoklu malzeme form şeması
