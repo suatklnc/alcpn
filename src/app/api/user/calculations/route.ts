@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
 // GET /api/user/calculations - Kullanıcının hesaplama geçmişini getir
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Gerçek authentication kontrolü
     const supabase = await createClient();

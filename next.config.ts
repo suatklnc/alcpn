@@ -3,9 +3,7 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  experimental: {
-    serverComponentsExternalPackages: ['@sentry/nextjs'],
-  },
+  serverExternalPackages: ['@sentry/nextjs'],
 };
 
 // Sentry configuration

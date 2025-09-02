@@ -58,6 +58,7 @@ export default function URLTesterPage() {
       const data = await response.json();
       setResult(data);
     } catch (error) {
+      console.error('URL test error:', error);
       setResult({
         success: false,
         error: 'Test sırasında hata oluştu',
