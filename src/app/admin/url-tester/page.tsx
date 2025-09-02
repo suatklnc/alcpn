@@ -413,7 +413,6 @@ export default function URLTesterPage() {
                     <div className="space-y-2 text-sm text-gray-800">
                       <div><strong>Fiyat:</strong> ₺{result.data?.price}</div>
                       <div><strong>Başlık:</strong> {result.data?.title}</div>
-                      <div><strong>Stok:</strong> {result.data?.availability}</div>
                       <div><strong>Süre:</strong> {result.response_time_ms}ms</div>
                     </div>
                     {result.message && (
