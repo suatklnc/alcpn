@@ -23,17 +23,9 @@ export default function MyCalculationsPage() {
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!authLoading) {
-      if (user) {
-        fetchCalculations();
-      } else {
-        // Kullanıcı giriş yapmamışsa state'i temizle
-        setCalculations([]);
-        setIsLoading(false);
-        setError(null);
-      }
-    }
-  }, [user, authLoading]);
+    // Geçici olarak development için authentication kontrolünü devre dışı bırak
+    fetchCalculations();
+  }, []);
 
   const fetchCalculations = async () => {
     try {
@@ -115,32 +107,8 @@ export default function MyCalculationsPage() {
     }
   };
 
-  // Kullanıcı giriş yapmamışsa
-  if (!authLoading && !user) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 max-w-md mx-auto">
-              <CalculatorIcon className="mx-auto h-12 w-12 text-blue-400 mb-4" />
-              <h3 className="text-lg font-medium text-blue-900 mb-2">
-                Giriş Yapmanız Gerekiyor
-              </h3>
-              <p className="text-sm text-blue-700 mb-4">
-                Hesaplama geçmişinizi görüntülemek için lütfen giriş yapın.
-              </p>
-              <Link
-                href="/login"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Giriş Yap
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Geçici olarak development için authentication kontrolünü devre dışı bırak
+  // TODO: Production'da gerçek authentication kontrolü ekle
 
   if (isLoading) {
     return (
