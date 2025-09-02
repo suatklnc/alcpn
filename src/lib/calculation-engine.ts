@@ -164,7 +164,7 @@ export class CalculationEngine {
         
         // Önce customPrices'tan, sonra default fiyattan al
         const price = customPrices?.[materialType] || materialInfo.defaultUnitPrice;
-        console.log(`Material: ${materialType}, Custom: ${customPrices?.[materialType]}, Default: ${materialInfo.defaultUnitPrice}, Final: ${price}`);
+        // console.log(`Material: ${materialType}, Custom: ${customPrices?.[materialType]}, Default: ${materialInfo.defaultUnitPrice}, Final: ${price}`);
         
         results.push({
           materialType,
