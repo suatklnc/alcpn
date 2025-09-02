@@ -18,6 +18,22 @@ Modern web teknolojileri kullanılarak geliştirilmiş malzeme miktarı hesaplam
 - **Code Quality**: ESLint, Prettier
 - **Deployment**: Vercel
 
+## 🔐 Admin Panel Güvenliği
+
+Admin paneline erişim sadece belirli email adreslerine sahip kullanıcılara verilir:
+
+### Environment Variable ile Kontrol
+`.env.local` dosyasına şu satırı ekleyin:
+```bash
+ADMIN_EMAILS=suatklnc@gmail.com,admin2@example.com
+```
+
+### Güvenlik Özellikleri
+- ✅ Email bazlı erişim kontrolü
+- ✅ Otomatik yönlendirme (yetkisiz erişimde)
+- ✅ Hata mesajı gösterimi
+- ✅ Server-side doğrulama
+
 ## 📋 Gereksinimler
 
 - Node.js 18+
