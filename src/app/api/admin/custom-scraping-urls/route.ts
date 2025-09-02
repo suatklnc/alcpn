@@ -16,10 +16,7 @@ export async function GET(request: NextRequest) {
     // Query builder
     let query = supabase
       .from('custom_scraping_urls')
-      .select(`
-        *,
-        source:scraping_sources(*)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     // Filters
@@ -37,7 +34,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch custom scraping URLs' }, { status: 500 });
     }
 
-    return NextResponse.json({ urls });
+    return NextResponse.json(urls || []);
   } catch (error) {
     console.error('Custom scraping URLs API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -54,9 +51,9 @@ export async function POST(request: NextRequest) {
     const body: CreateCustomScrapingUrlRequest = await request.json();
 
     // Validation
-    if (!body.name || !body.url || !body.material_type || !body.source_id) {
+    if (!body.url || !body.material_type || !body.selector) {
       return NextResponse.json(
-        { error: 'Name, url, material_type, and source_id are required' },
+        { error: 'URL, material_type, and selector are required' },
         { status: 400 }
       );
     }
@@ -71,36 +68,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Source'ın var olduğunu kontrol et
-    const { data: source, error: sourceError } = await supabase
-      .from('scraping_sources')
-      .select('id')
-      .eq('id', body.source_id)
-      .single();
-
-    if (sourceError || !source) {
-      return NextResponse.json(
-        { error: 'Scraping source not found' },
-        { status: 400 }
-      );
-    }
-
     // Yeni custom scraping URL oluştur
     const { data: url, error } = await supabase
       .from('custom_scraping_urls')
       .insert({
-        name: body.name,
         url: body.url,
         material_type: body.material_type,
-        source_id: body.source_id,
-        custom_selectors: body.custom_selectors,
+        selector: body.selector,
         is_active: body.is_active ?? true,
-        created_by: 'dev-user-123', // Development için sabit user ID
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
-      .select(`
-        *,
-        source:scraping_sources(*)
-      `)
+      .select('*')
       .single();
 
     if (error) {
@@ -108,7 +87,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create custom scraping URL' }, { status: 500 });
     }
 
-    return NextResponse.json({ url }, { status: 201 });
+    return NextResponse.json(url, { status: 201 });
   } catch (error) {
     console.error('Create custom scraping URL API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

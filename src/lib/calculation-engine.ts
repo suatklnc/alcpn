@@ -11,18 +11,57 @@ import {
 
 // Hesaplama motoru sınıfı
 export class CalculationEngine {
+  private static materialPricesCache: Record<string, number> | null = null;
+  private static cacheTimestamp: number = 0;
+  private static CACHE_DURATION = 5 * 60 * 1000; // 5 dakika
+
   // Malzeme bilgilerini getir
   static getMaterialInfo(materialType: MaterialType): MaterialInfo {
     return MATERIAL_COEFFICIENTS[materialType];
   }
 
-  // Varsayılan birim fiyatı getir
-  static getUnitPrice(materialType: MaterialType): number {
-    return MATERIAL_COEFFICIENTS[materialType].defaultUnitPrice;
+  // Varsayılan birim fiyatı getir (Supabase'den güncel fiyatları al)
+  static async getUnitPrice(materialType: MaterialType): Promise<number> {
+    try {
+      const prices = await this.getMaterialPrices();
+      return prices[materialType] || MATERIAL_COEFFICIENTS[materialType].defaultUnitPrice;
+    } catch (error) {
+      console.error('Error fetching material price:', error);
+      return MATERIAL_COEFFICIENTS[materialType].defaultUnitPrice;
+    }
+  }
+
+  // Malzeme fiyatlarını getir (cache'li)
+  private static async getMaterialPrices(): Promise<Record<string, number>> {
+    const now = Date.now();
+    
+    // Cache kontrolü
+    if (this.materialPricesCache && (now - this.cacheTimestamp) < this.CACHE_DURATION) {
+      return this.materialPricesCache;
+    }
+
+    try {
+      const response = await fetch('/api/material-prices');
+      if (response.ok) {
+        const prices = await response.json();
+        this.materialPricesCache = prices;
+        this.cacheTimestamp = now;
+        return prices;
+      }
+    } catch (error) {
+      console.error('Error fetching material prices:', error);
+    }
+
+    // Fallback: default fiyatları döndür
+    const defaultPrices: Record<string, number> = {};
+    Object.values(MATERIAL_COEFFICIENTS).forEach(material => {
+      defaultPrices[material.type] = material.defaultUnitPrice;
+    });
+    return defaultPrices;
   }
 
   // Tek malzeme hesaplama
-  static calculateMaterial(params: CalculationParams): CalculationResult[] {
+  static async calculateMaterial(params: CalculationParams): Promise<CalculationResult[]> {
     const { area, isTuru, altTuru, unitPrice, customPrices } = params;
     
     // Hangi malzemelerin hesaplanacağını belirle
@@ -34,8 +73,11 @@ export class CalculationEngine {
       const materialInfo = this.getMaterialInfo(materialType);
       const quantity = area * materialInfo.coefficient;
       
-      // Önce customPrices'tan, sonra genel unitPrice'tan, son olarak default fiyattan al
-      const price = customPrices?.[materialType] || unitPrice || materialInfo.defaultUnitPrice;
+      // Önce customPrices'tan, sonra genel unitPrice'tan, son olarak güncel fiyattan al
+      let price = customPrices?.[materialType] || unitPrice;
+      if (!price) {
+        price = await this.getUnitPrice(materialType);
+      }
       
       results.push({
         materialType,
@@ -134,13 +176,13 @@ export class CalculationEngine {
   }
 
   // Çoklu malzeme hesaplama (API için güncellenmiş)
-  static calculateMultipleMaterials(
+  static async calculateMultipleMaterials(
     jobType: IsTuru,
     subType: TavanTuru | DuvarTuru,
     area: number,
     customPrices?: Record<string, number>,
     selectedMaterials?: MaterialType[]
-  ): { success: boolean; data?: { materials: CalculationResult[]; totalCost: number; area: number; jobType: IsTuru; subType: TavanTuru | DuvarTuru; customPrices?: Record<string, number> }; error?: string } {
+  ): Promise<{ success: boolean; data?: { materials: CalculationResult[]; totalCost: number; area: number; jobType: IsTuru; subType: TavanTuru | DuvarTuru; customPrices?: Record<string, number> }; error?: string }> {
     try {
       // Alan validasyonu
       const areaValidation = this.validateArea(area);
@@ -162,8 +204,11 @@ export class CalculationEngine {
         const materialInfo = this.getMaterialInfo(materialType);
         const quantity = area * materialInfo.coefficient;
         
-        // Önce customPrices'tan, sonra default fiyattan al
-        const price = customPrices?.[materialType] || materialInfo.defaultUnitPrice;
+        // Önce customPrices'tan, sonra güncel fiyattan al
+        let price = customPrices?.[materialType];
+        if (!price) {
+          price = await this.getUnitPrice(materialType);
+        }
         // console.log(`Material: ${materialType}, Custom: ${customPrices?.[materialType]}, Default: ${materialInfo.defaultUnitPrice}, Final: ${price}`);
         
         results.push({

@@ -14,10 +14,7 @@ import { createClient } from '@/lib/supabase/client';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: HomeIcon },
-  { name: 'Scraping Sources', href: '/admin/scraping-sources', icon: CogIcon },
-  { name: 'Custom URLs', href: '/admin/custom-urls', icon: LinkIcon },
   { name: 'URL Tester', href: '/admin/url-tester', icon: BeakerIcon },
-  { name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon },
 ];
 
 export default function AdminSidebar() {

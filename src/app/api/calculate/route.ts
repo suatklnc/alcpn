@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Malzeme hesaplaması yap (static method)
-    const result = CalculationEngine.calculateMultipleMaterials(
+    // Malzeme hesaplaması yap (async method)
+    const result = await CalculationEngine.calculateMultipleMaterials(
       jobType,
       subType,
       area,

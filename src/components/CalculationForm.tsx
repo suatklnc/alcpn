@@ -22,6 +22,7 @@ type FormData = {
 export default function CalculationForm({ onCalculate }: CalculationFormProps) {
   const [isCalculating, setIsCalculating] = useState(false);
   const [availableMaterials, setAvailableMaterials] = useState<string[]>([]);
+  const [materialPrices, setMaterialPrices] = useState<Record<string, number>>({});
   const { user } = useAuth();
 
   const {
@@ -44,6 +45,23 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
   const watchedIsTuru = watch('isTuru');
   const watchedAltTuru = watch('altTuru');
   const watchedCustomPrices = watch('customPrices');
+
+  // Component mount olduğunda malzeme fiyatlarını yükle
+  useEffect(() => {
+    const fetchMaterialPrices = async () => {
+      try {
+        const response = await fetch('/api/material-prices');
+        if (response.ok) {
+          const prices = await response.json();
+          setMaterialPrices(prices);
+        }
+      } catch (error) {
+        console.error('Error fetching material prices:', error);
+      }
+    };
+    
+    fetchMaterialPrices();
+  }, []);
 
   // İş türü veya alt tür değiştiğinde mevcut malzemeleri güncelle
   useEffect(() => {
@@ -137,7 +155,12 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
   };
 
   const getDefaultPrice = (materialType: string) => {
-    const materialInfo = CalculationEngine.getMaterialInfo(materialType as 'beyaz_alcipan' | 'c_profili' | 'u_profili' | 'aski_teli' | 'aski_masasi' | 'klips' | 'vida' | 't_ana_tasiyici' | 'tali_120_tasiyici' | 'tali_60_tasiyici' | 'plaka' | 'omega' | 'alcipan' | 'agraf' | 'dubel_civi' | 'vida_25' | 'vida_35');
+    // Önce cache'den al, yoksa default fiyattan al
+    if (materialPrices[materialType]) {
+      return materialPrices[materialType];
+    }
+    
+    const materialInfo = CalculationEngine.getMaterialInfo(materialType as MaterialType);
     return materialInfo.defaultUnitPrice;
   };
 

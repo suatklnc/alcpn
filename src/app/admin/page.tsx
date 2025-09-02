@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { AdminStats } from '@/types/admin';
 import { 
   CogIcon, 
@@ -136,7 +137,8 @@ export default function AdminDashboard() {
     : 0;
 
   return (
-    <div className="space-y-6">
+    <AdminLayout>
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
@@ -240,26 +242,27 @@ export default function AdminDashboard() {
           </h3>
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <a
-              href="/admin/scraping-sources"
+              href="/admin/url-tester"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              Manage Sources
+              URL Tester
             </a>
             <a
-              href="/admin/custom-urls"
+              href="/admin/url-tester"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
-              Manage URLs
+              Malzeme Fiyat Yönetimi
             </a>
             <a
               href="/admin/url-tester"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
             >
-              Test URLs
+              Fiyat Test Et
             </a>
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

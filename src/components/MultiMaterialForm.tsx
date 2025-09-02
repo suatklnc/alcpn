@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { multiMaterialFormSchema } from '@/lib/validation/calculation-schema';
@@ -23,6 +23,7 @@ type FormData = {
 
 export default function MultiMaterialForm({ onCalculate }: MultiMaterialFormProps) {
   const [isCalculating, setIsCalculating] = useState(false);
+  const [materialPrices, setMaterialPrices] = useState<Record<string, number>>({});
   const { user } = useAuth();
 
   const {
@@ -45,6 +46,23 @@ export default function MultiMaterialForm({ onCalculate }: MultiMaterialFormProp
 
   const watchedIsTuru = watch('isTuru');
   const watchedSelectedMaterials = watch('selectedMaterials') || [];
+
+  // Component mount olduğunda malzeme fiyatlarını yükle
+  useEffect(() => {
+    const fetchMaterialPrices = async () => {
+      try {
+        const response = await fetch('/api/material-prices');
+        if (response.ok) {
+          const prices = await response.json();
+          setMaterialPrices(prices);
+        }
+      } catch (error) {
+        console.error('Error fetching material prices:', error);
+      }
+    };
+    
+    fetchMaterialPrices();
+  }, []);
 
   // İş türüne göre mevcut malzemeleri getir
   const availableMaterials = CalculationEngine.getAvailableMaterials(watchedIsTuru);
@@ -70,7 +88,12 @@ export default function MultiMaterialForm({ onCalculate }: MultiMaterialFormProp
   };
 
   const getDefaultPrice = (materialType: string) => {
-    const materialInfo = CalculationEngine.getMaterialInfo(materialType as 'beyaz_alcipan' | 'c_profili' | 'u_profili' | 'aski_teli' | 'aski_masasi' | 'klips' | 'vida' | 't_ana_tasiyici' | 'tali_120_tasiyici' | 'tali_60_tasiyici' | 'plaka' | 'omega' | 'alcipan' | 'agraf' | 'dubel_civi' | 'vida_25' | 'vida_35');
+    // Önce cache'den al, yoksa default fiyattan al
+    if (materialPrices[materialType]) {
+      return materialPrices[materialType];
+    }
+    
+    const materialInfo = CalculationEngine.getMaterialInfo(materialType as MaterialType);
     return materialInfo.defaultUnitPrice;
   };
 

@@ -18,24 +18,18 @@ export interface ScrapingSource {
 
 export interface CustomScrapingUrl {
   id: string;
-  name: string;
   url: string;
   material_type: string; // MaterialType enum değeri
-  source_id: string;
-  custom_selectors?: {
-    price?: string;
-    title?: string;
-    availability?: string;
-    image?: string;
-  };
+  selector: string;
   is_active: boolean;
-  last_scraped_at?: string;
-  last_price?: number;
+  last_tested_at?: string;
+  test_result?: {
+    success: boolean;
+    price?: number;
+    error?: string;
+  };
   created_at: string;
   updated_at: string;
-  created_by?: string;
-  // Joined data
-  source?: ScrapingSource;
 }
 
 export interface ScrapingHistory {
@@ -72,16 +66,9 @@ export interface UpdateScrapingSourceRequest extends Partial<CreateScrapingSourc
 }
 
 export interface CreateCustomScrapingUrlRequest {
-  name: string;
   url: string;
   material_type: string;
-  source_id: string;
-  custom_selectors?: {
-    price?: string;
-    title?: string;
-    availability?: string;
-    image?: string;
-  };
+  selector: string;
   is_active?: boolean;
 }
 
