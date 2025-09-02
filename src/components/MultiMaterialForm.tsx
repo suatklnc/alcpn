@@ -140,7 +140,7 @@ export default function MultiMaterialForm({ onCalculate }: MultiMaterialFormProp
             min="0.1"
             max="10000"
             {...register('area', { valueAsNumber: true })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
             placeholder="Örn: 25.5"
           />
           {errors.area && (
@@ -156,7 +156,7 @@ export default function MultiMaterialForm({ onCalculate }: MultiMaterialFormProp
           <select
             id="isTuru"
             {...register('isTuru')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-900"
           >
             <option value="tavan">Tavan İşleri</option>
             <option value="duvar">Duvar İşleri</option>
@@ -220,7 +220,7 @@ export default function MultiMaterialForm({ onCalculate }: MultiMaterialFormProp
                         updateCustomPrice(materialType, price);
                       }
                     }}
-                    className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
+                    className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 text-gray-900"
                     placeholder={`Varsayılan: ${getDefaultPrice(materialType)} TL`}
                   />
                   <span className="text-xs text-gray-500">
