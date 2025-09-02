@@ -19,13 +19,10 @@ export async function POST(request: NextRequest) {
       jobType, 
       subType, 
       area, 
-      customPrices = {},
       selectedMaterials = []
     } = body;
 
-    // Debug: customPrices'ı kontrol et (gerekirse açılabilir)
-    // console.log('API received customPrices:', customPrices);
-    // console.log('API received body:', body);
+
 
     // Validation
     if (!jobType || !subType || !area || area <= 0) {
@@ -40,7 +37,7 @@ export async function POST(request: NextRequest) {
       jobType,
       subType,
       area,
-      customPrices,
+      undefined, // customPrices kaldırıldı
       selectedMaterials
     );
 
@@ -62,7 +59,7 @@ export async function POST(request: NextRequest) {
                     job_type: jobType,
                     sub_type: subType,
                     area: area,
-                    custom_prices: customPrices,
+                    custom_prices: {}, // customPrices kaldırıldı, boş obje
                     calculation_result: result.data!,
                     total_cost: result.data!.totalCost,
                     created_at: new Date().toISOString(),

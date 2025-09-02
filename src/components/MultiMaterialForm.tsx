@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { multiMaterialFormSchema } from '@/lib/validation/calculation-schema';
@@ -19,12 +19,11 @@ type FormData = {
   isTuru: 'tavan' | 'duvar';
   altTuru: 'duz_tavan' | 'karopan_tavan' | 'klipin_tavan' | 'giydirme_duvar' | 'tek_kat_tek_iskelet' | 'cift_kat_cift_iskelet';
   selectedMaterials: ('beyaz_alcipan' | 'c_profili' | 'u_profili' | 'aski_teli' | 'aski_masasi' | 'klips' | 'vida' | 't_ana_tasiyici' | 'tali_120_tasiyici' | 'tali_60_tasiyici' | 'plaka' | 'omega' | 'alcipan' | 'agraf' | 'dubel_civi' | 'vida_25' | 'vida_35')[];
-  customPrices?: Record<string, number>;
 };
 
 export default function MultiMaterialForm({ onCalculate, refreshKey }: MultiMaterialFormProps) {
   const [isCalculating, setIsCalculating] = useState(false);
-  const [materialPrices, setMaterialPrices] = useState<Record<string, number>>({});
+
   const { user } = useAuth();
 
   const {
@@ -41,48 +40,13 @@ export default function MultiMaterialForm({ onCalculate, refreshKey }: MultiMate
       isTuru: 'tavan',
       altTuru: 'duz_tavan',
       selectedMaterials: [],
-      customPrices: {},
     },
   });
 
   const watchedIsTuru = watch('isTuru');
   const watchedSelectedMaterials = watch('selectedMaterials') || [];
 
-  // Malzeme fiyatlarını yükle
-  const fetchMaterialPrices = async () => {
-    try {
-      const response = await fetch('/api/material-prices');
-      if (response.ok) {
-        const prices = await response.json();
-        setMaterialPrices(prices);
-        console.log('Material prices updated:', prices);
-      }
-    } catch (error) {
-      console.error('Error fetching material prices:', error);
-    }
-  };
 
-  // Component mount olduğunda malzeme fiyatlarını yükle
-  useEffect(() => {
-    fetchMaterialPrices();
-  }, []);
-
-  // refreshKey değiştiğinde fiyatları yenile
-  useEffect(() => {
-    if (refreshKey && refreshKey > 0) {
-      fetchMaterialPrices();
-    }
-  }, [refreshKey]);
-
-  // Sayfa focus olduğunda fiyatları yenile (URL Tester'dan döndüğünde)
-  useEffect(() => {
-    const handleFocus = () => {
-      fetchMaterialPrices();
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, []);
 
   // İş türüne göre mevcut malzemeleri getir
   const availableMaterials = getAvailableMaterials(watchedIsTuru);
@@ -99,23 +63,7 @@ export default function MultiMaterialForm({ onCalculate, refreshKey }: MultiMate
     }
   };
 
-  const updateCustomPrice = (materialType: string, price: number) => {
-    const currentPrices = getValues('customPrices') || {};
-    setValue('customPrices', {
-      ...currentPrices,
-      [materialType]: price,
-    });
-  };
 
-  const getDefaultPrice = (materialType: string) => {
-    // Sadece Supabase'den gelen fiyatları kullan
-    if (materialPrices[materialType]) {
-      return materialPrices[materialType];
-    }
-    
-    // Supabase'den fiyat gelmemişse 0 döndür (placeholder olarak)
-    return 0;
-  };
 
   const onSubmit = async (data: FormData) => {
     if (!user) {
@@ -136,7 +84,6 @@ export default function MultiMaterialForm({ onCalculate, refreshKey }: MultiMate
           jobType: data.isTuru,
           subType: data.altTuru,
           area: data.area,
-          customPrices: data.customPrices,
           selectedMaterials: data.selectedMaterials,
         }),
       });
@@ -247,43 +194,7 @@ export default function MultiMaterialForm({ onCalculate, refreshKey }: MultiMate
           )}
         </div>
 
-        {/* Bireysel Malzeme Fiyatları */}
-        {watchedSelectedMaterials.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bireysel Malzeme Fiyatları (TL) <span className="text-gray-500">(Opsiyonel)</span>
-            </label>
-            <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3">
-              {watchedSelectedMaterials.map((materialType) => (
-                <div key={materialType} className="flex items-center space-x-2">
-                  <label className="w-40 text-sm text-gray-600 truncate">
-                    {materialTypeLabels[materialType] || materialType}:
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="10000"
-                    onChange={(e) => {
-                      const price = parseFloat(e.target.value);
-                      if (!isNaN(price)) {
-                        updateCustomPrice(materialType, price);
-                      }
-                    }}
-                    className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 text-gray-900 placeholder-gray-500"
-                    placeholder={`Varsayılan: ${getDefaultPrice(materialType)} TL`}
-                  />
-                  <span className="text-xs text-gray-500">
-                    (Varsayılan: {getDefaultPrice(materialType)} TL)
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-gray-500">
-              Boş bırakılan malzemeler için varsayılan fiyatlar kullanılır.
-            </p>
-          </div>
-        )}
+
 
         {/* Hesapla Butonu */}
         <button

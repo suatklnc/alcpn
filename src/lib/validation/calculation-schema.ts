@@ -51,18 +51,6 @@ export const calculationFormSchema = z.object({
     ),
   isTuru: isTuruEnum,
   altTuru: z.union([tavanTuruEnum, duvarTuruEnum]),
-  customPrices: z
-    .record(
-      z.string(),
-      z
-        .union([
-          z.number().min(0, 'Birim fiyat negatif olamaz').max(10000, 'Birim fiyat en fazla 10,000 TL olabilir'),
-          z.string().optional(),
-          z.undefined(),
-          z.null()
-        ])
-    )
-    .optional(),
 });
 
 // Çoklu malzeme form şeması
@@ -77,15 +65,6 @@ export const multiMaterialFormSchema = z.object({
     .array(materialTypeEnum)
     .min(1, 'En az bir malzeme türü seçiniz')
     .max(15, 'En fazla 15 malzeme türü seçilebilir'),
-  customPrices: z
-    .record(
-      z.string(),
-      z
-        .number()
-        .min(0, 'Birim fiyat negatif olamaz')
-        .max(10000, 'Birim fiyat en fazla 10,000 TL olabilir')
-    )
-    .optional(),
 });
 
 // Hata mesajı alma fonksiyonu

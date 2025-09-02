@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { calculationFormSchema } from '@/lib/validation/calculation-schema';
-import { getMaterialsForJobType, getMaterialInfo } from '@/lib/material-utils';
+
 import { CalculationResult } from '@/types/calculation';
 import { useAuth } from '@/lib/auth-context';
 
@@ -17,13 +17,11 @@ type FormData = {
   area: number;
   isTuru: 'tavan' | 'duvar';
   altTuru: 'duz_tavan' | 'karopan_tavan' | 'klipin_tavan' | 'giydirme_duvar' | 'tek_kat_tek_iskelet' | 'cift_kat_cift_iskelet';
-  customPrices?: Record<string, number>;
 };
 
 export default function CalculationForm({ onCalculate, refreshKey }: CalculationFormProps) {
   const [isCalculating, setIsCalculating] = useState(false);
-  const [availableMaterials, setAvailableMaterials] = useState<string[]>([]);
-  const [materialPrices, setMaterialPrices] = useState<Record<string, number>>({});
+
   const { user } = useAuth();
 
   const {
@@ -39,55 +37,13 @@ export default function CalculationForm({ onCalculate, refreshKey }: Calculation
       area: 0,
       isTuru: 'tavan',
       altTuru: 'duz_tavan',
-      customPrices: {},
     },
   });
 
   const watchedIsTuru = watch('isTuru');
   const watchedAltTuru = watch('altTuru');
-  const watchedCustomPrices = watch('customPrices');
 
-  // Malzeme fiyatlarını yükle
-  const fetchMaterialPrices = async () => {
-    try {
-      const response = await fetch('/api/material-prices');
-      if (response.ok) {
-        const prices = await response.json();
-        setMaterialPrices(prices);
-        console.log('Material prices updated:', prices);
-      }
-    } catch (error) {
-      console.error('Error fetching material prices:', error);
-    }
-  };
 
-  // Component mount olduğunda malzeme fiyatlarını yükle
-  useEffect(() => {
-    fetchMaterialPrices();
-  }, []);
-
-  // refreshKey değiştiğinde fiyatları yenile
-  useEffect(() => {
-    if (refreshKey && refreshKey > 0) {
-      fetchMaterialPrices();
-    }
-  }, [refreshKey]);
-
-  // Sayfa focus olduğunda fiyatları yenile (URL Tester'dan döndüğünde)
-  useEffect(() => {
-    const handleFocus = () => {
-      fetchMaterialPrices();
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, []);
-
-  // İş türü veya alt tür değiştiğinde mevcut malzemeleri güncelle
-  useEffect(() => {
-    const materials = getMaterialsForJobType(watchedIsTuru, watchedAltTuru);
-    setAvailableMaterials(materials);
-  }, [watchedIsTuru, watchedAltTuru]);
 
   const onSubmit = async (data: FormData) => {
     if (!user) {
@@ -98,23 +54,6 @@ export default function CalculationForm({ onCalculate, refreshKey }: Calculation
     setIsCalculating(true);
     
     try {
-      // Boş olmayan customPrices'ları filtrele
-      const filteredCustomPrices = data.customPrices 
-        ? Object.fromEntries(
-            Object.entries(data.customPrices).filter(([_, value]) => 
-              value !== undefined && value !== null && value !== '' && !isNaN(Number(value))
-            )
-          )
-        : {};
-
-      // Debug: Form verilerini kontrol et (gerekirse açılabilir)
-      // console.log('Form data being sent:', {
-      //   jobType: data.isTuru,
-      //   subType: data.altTuru,
-      //   area: data.area,
-      //   customPrices: filteredCustomPrices,
-      // });
-      
       // API'yi kullanarak hesaplama yap
       const response = await fetch('/api/calculate', {
         method: 'POST',
@@ -125,7 +64,6 @@ export default function CalculationForm({ onCalculate, refreshKey }: Calculation
           jobType: data.isTuru,
           subType: data.altTuru,
           area: data.area,
-          customPrices: filteredCustomPrices,
         }),
       });
 
@@ -159,30 +97,7 @@ export default function CalculationForm({ onCalculate, refreshKey }: Calculation
     }
   };
 
-  const updateCustomPrice = (materialType: string, price: number) => {
-    const currentPrices = getValues('customPrices') || {};
-    const newPrices = {
-      ...currentPrices,
-      [materialType]: price,
-    };
-    // console.log('Updating custom price:', { materialType, price, newPrices });
-    setValue('customPrices', newPrices);
-  };
 
-  const getMaterialName = (materialType: string) => {
-    const materialInfo = getMaterialInfo(materialType as 'beyaz_alcipan' | 'c_profili' | 'u_profili' | 'aski_teli' | 'aski_masasi' | 'klips' | 'vida' | 't_ana_tasiyici' | 'tali_120_tasiyici' | 'tali_60_tasiyici' | 'plaka' | 'omega' | 'alcipan' | 'agraf' | 'dubel_civi' | 'vida_25' | 'vida_35');
-    return materialInfo.name;
-  };
-
-  const getDefaultPrice = (materialType: string) => {
-    // Sadece Supabase'den gelen fiyatları kullan
-    if (materialPrices[materialType]) {
-      return materialPrices[materialType];
-    }
-    
-    // Supabase'den fiyat gelmemişse 0 döndür (placeholder olarak)
-    return 0;
-  };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -260,49 +175,7 @@ export default function CalculationForm({ onCalculate, refreshKey }: Calculation
 
 
 
-        {/* Bireysel Malzeme Fiyatları */}
-        {availableMaterials.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bireysel Malzeme Fiyatları (TL) <span className="text-gray-500">(Opsiyonel)</span>
-            </label>
-            <div className="space-y-2 max-h-64 overflow-y-auto border border-gray-200 rounded-md p-3">
-              {availableMaterials.map((materialType) => (
-                <div key={materialType} className="flex items-center space-x-2">
-                  <label className="w-40 text-sm text-gray-600 truncate">
-                    {getMaterialName(materialType)}:
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="10000"
-                    onChange={(e) => {
-                      const price = parseFloat(e.target.value);
-                      if (!isNaN(price) && price > 0) {
-                        updateCustomPrice(materialType, price);
-                      } else {
-                        // Boş değer girildiğinde customPrices'tan kaldır
-                        const currentPrices = getValues('customPrices') || {};
-                        const newPrices = { ...currentPrices };
-                        delete newPrices[materialType];
-                        setValue('customPrices', newPrices);
-                      }
-                    }}
-                    className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
-                    placeholder={`Varsayılan: ${getDefaultPrice(materialType)} TL`}
-                  />
-                  <span className="text-xs text-gray-500">
-                    (Varsayılan: {getDefaultPrice(materialType)} TL)
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-gray-500">
-              Bireysel fiyatlar genel fiyattan önceliklidir. Boş bırakılan malzemeler için varsayılan fiyatlar kullanılır.
-            </p>
-          </div>
-        )}
+
 
         {/* Hesapla Butonu */}
         <button
