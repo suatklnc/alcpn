@@ -36,6 +36,7 @@ function getTavanMalzemeleri(tavanTuru: TavanTuru): MaterialType[] {
         'tali_120_tasiyici',
         'tali_60_tasiyici',
         'plaka',
+        'u_profili',
         'aski_teli',
         'vida',
       ];
@@ -43,6 +44,7 @@ function getTavanMalzemeleri(tavanTuru: TavanTuru): MaterialType[] {
       return [
         'plaka',
         'omega',
+        'u_profili',
         'aski_teli',
         'vida',
       ];
