@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CalculationEngine } from '@/lib/calculation-engine';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
-    // Geçici olarak development için authentication'ı devre dışı bırak
-    // TODO: Production'da gerçek authentication kullan
-    const userId = 'dev-user-123'; // Development için sabit user ID
+    // Gerçek authentication kontrolü
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const body = await request.json();
     
@@ -49,7 +54,7 @@ export async function POST(request: NextRequest) {
                 const { data: savedCalculation, error: saveError } = await adminSupabase
                   .from('calculation_history')
                   .insert({
-                    user_id: userId,
+                    user_id: user.id,
                     job_type: jobType,
                     sub_type: subType,
                     area: area,

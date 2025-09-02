@@ -46,11 +46,17 @@ export default function CalculationDetailPage() {
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    // Geçici olarak development için authentication kontrolünü devre dışı bırak
-    if (params.id) {
-      fetchCalculationDetail(params.id as string);
+    if (!authLoading) {
+      if (user && params.id) {
+        fetchCalculationDetail(params.id as string);
+      } else if (!user) {
+        // Kullanıcı giriş yapmamışsa state'i temizle
+        setCalculation(null);
+        setIsLoading(false);
+        setError('Giriş yapmanız gerekiyor');
+      }
     }
-  }, [params.id]);
+  }, [user, authLoading, params.id]);
 
   const fetchCalculationDetail = async (id: string) => {
     try {
@@ -209,8 +215,40 @@ ${calculation.calculation_result.materials.map(m =>
     );
   }
 
-  // Geçici olarak development için authentication kontrolünü devre dışı bırak
-  // TODO: Production'da gerçek authentication kontrolü ekle
+  // Kullanıcı giriş yapmamışsa
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 max-w-md mx-auto">
+              <CalculatorIcon className="mx-auto h-12 w-12 text-blue-400 mb-4" />
+              <h3 className="text-lg font-medium text-blue-900 mb-2">
+                Giriş Yapmanız Gerekiyor
+              </h3>
+              <p className="text-sm text-blue-700 mb-4">
+                Hesaplama detaylarını görüntülemek için lütfen giriş yapın.
+              </p>
+              <div className="space-x-2">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Giriş Yap
+                </Link>
+                <button
+                  onClick={() => router.back()}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Geri Dön
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (error || !calculation) {
     return (
