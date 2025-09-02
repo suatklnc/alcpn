@@ -10,9 +10,13 @@ export async function GET(
   try {
     const { id } = await params;
     
-    // Geçici olarak development için authentication'ı devre dışı bırak
-    // TODO: Production'da gerçek authentication kullan
-    const userId = 'dev-user-123'; // Development için sabit user ID
+    // Gerçek authentication kontrolü
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     const adminSupabase = createAdminClient();
     
@@ -21,7 +25,7 @@ export async function GET(
       .from('calculation_history')
       .select('*')
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .single();
 
     if (error) {
@@ -58,9 +62,13 @@ export async function DELETE(
   try {
     const { id } = await params;
     
-    // Geçici olarak development için authentication'ı devre dışı bırak
-    // TODO: Production'da gerçek authentication kullan
-    const userId = 'dev-user-123'; // Development için sabit user ID
+    // Gerçek authentication kontrolü
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
     const adminSupabase = createAdminClient();
     
@@ -69,7 +77,7 @@ export async function DELETE(
       .from('calculation_history')
       .select('id')
       .eq('id', id)
-      .eq('user_id', userId)
+      .eq('user_id', user.id)
       .single();
 
     if (checkError || !existingCalculation) {
@@ -84,7 +92,7 @@ export async function DELETE(
       .from('calculation_history')
       .delete()
       .eq('id', id)
-      .eq('user_id', userId);
+      .eq('user_id', user.id);
 
     if (deleteError) {
       console.error('Error deleting calculation:', deleteError);
