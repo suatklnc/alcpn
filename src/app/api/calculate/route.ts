@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
       subType, 
       area, 
       customPrices = {},
+      selectedMaterials = [],
       userId = 'anonymous' // TODO: Gerçek user ID kullan
     } = body;
 
@@ -27,7 +28,8 @@ export async function POST(request: NextRequest) {
       jobType,
       subType,
       area,
-      customPrices
+      customPrices,
+      selectedMaterials
     );
 
     if (!result.success) {

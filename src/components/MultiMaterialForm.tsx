@@ -87,6 +87,7 @@ export default function MultiMaterialForm({ onCalculate }: MultiMaterialFormProp
           subType: data.altTuru,
           area: data.area,
           customPrices: data.customPrices,
+          selectedMaterials: data.selectedMaterials,
         }),
       });
 

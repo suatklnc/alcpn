@@ -138,7 +138,8 @@ export class CalculationEngine {
     jobType: IsTuru,
     subType: TavanTuru | DuvarTuru,
     area: number,
-    customPrices?: Record<string, number>
+    customPrices?: Record<string, number>,
+    selectedMaterials?: MaterialType[]
   ): { success: boolean; data?: { materials: CalculationResult[]; totalCost: number; area: number; jobType: IsTuru; subType: TavanTuru | DuvarTuru; customPrices?: Record<string, number> }; error?: string } {
     try {
       // Alan validasyonu
@@ -147,8 +148,14 @@ export class CalculationEngine {
         return { success: false, error: areaValidation.message };
       }
 
-      // Malzemeleri belirle
-      const materials = this.getMaterialsForJobType(jobType, subType);
+      // Malzemeleri belirle - eğer selectedMaterials varsa onları kullan, yoksa iş türüne göre tüm malzemeleri al
+      let materials: MaterialType[];
+      if (selectedMaterials && selectedMaterials.length > 0) {
+        materials = selectedMaterials;
+      } else {
+        materials = this.getMaterialsForJobType(jobType, subType);
+      }
+
       const results: CalculationResult[] = [];
       
       for (const materialType of materials) {

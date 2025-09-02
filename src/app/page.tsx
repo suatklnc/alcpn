@@ -88,7 +88,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-            </div>
+        </div>
           )}
 
           {/* Features Grid */}
@@ -168,7 +168,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </div>
+    </div>
     </Layout>
   );
 }
