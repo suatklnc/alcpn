@@ -15,24 +15,12 @@ import {
 } from '@heroicons/react/24/outline';
 
 const MATERIAL_TYPES = [
-  // Tavan Malzemeleri
+  // Tavan Malzemeleri (hesaplayıcıdaki type'larla eşleşen)
   'beyaz_alcipan', 'c_profili', 'u_profili', 'aski_teli', 'aski_masasi', 'klips', 'vida',
-  
-  // Karopan Tavan Malzemeleri
-  'karopan_tavan', 'karopan_t_ana_tasiyici', 'karopan_tali_120_tasiyici', 'karopan_tali_60_tasiyici',
-  'karopan_plaka', 'karopan_omega', 'karopan_alcipan', 'karopan_agraf', 'karopan_dubel_civi',
-  'karopan_vida_25', 'karopan_vida_35',
-  
-  // Klipin Tavan Malzemeleri
-  'klipin_tavan', 'klipin_t_ana_tasiyici', 'klipin_tali_120_tasiyici', 'klipin_tali_60_tasiyici',
-  'klipin_plaka', 'klipin_omega', 'klipin_alcipan', 'klipin_agraf', 'klipin_dubel_civi',
-  'klipin_vida_25', 'klipin_vida_35',
+  't_ana_tasiyici', 'tali_120_tasiyici', 'tali_60_tasiyici', 'plaka', 'omega',
   
   // Duvar Malzemeleri
-  'duvar_alcipan', 'duvar_c_profili', 'duvar_u_profili', 'duvar_vida', 'duvar_dubel',
-  
-  // Zemin Malzemeleri
-  'zemin_alcipan', 'zemin_c_profili', 'zemin_u_profili', 'zemin_vida', 'zemin_dubel'
+  'alcipan', 'agraf', 'dubel_civi', 'vida_25', 'vida_35'
 ];
 
 const MATERIAL_NAMES: Record<string, string> = {
@@ -44,46 +32,18 @@ const MATERIAL_NAMES: Record<string, string> = {
   'aski_masasi': 'Aski Masası',
   'klips': 'Klips',
   'vida': 'Vida',
-  
-  // Karopan Tavan Malzemeleri
-  'karopan_tavan': 'Karopan Tavan',
-  'karopan_t_ana_tasiyici': 'Karopan T Ana Taşıyıcı',
-  'karopan_tali_120_tasiyici': 'Karopan Tali 120 Taşıyıcı',
-  'karopan_tali_60_tasiyici': 'Karopan Tali 60 Taşıyıcı',
-  'karopan_plaka': 'Karopan Plaka',
-  'karopan_omega': 'Karopan Omega',
-  'karopan_alcipan': 'Karopan Alçıpan',
-  'karopan_agraf': 'Karopan Agraf',
-  'karopan_dubel_civi': 'Karopan Dubel Çivi',
-  'karopan_vida_25': 'Karopan Vida 25mm',
-  'karopan_vida_35': 'Karopan Vida 35mm',
-  
-  // Klipin Tavan Malzemeleri
-  'klipin_tavan': 'Klipin Tavan',
-  'klipin_t_ana_tasiyici': 'Klipin T Ana Taşıyıcı',
-  'klipin_tali_120_tasiyici': 'Klipin Tali 120 Taşıyıcı',
-  'klipin_tali_60_tasiyici': 'Klipin Tali 60 Taşıyıcı',
-  'klipin_plaka': 'Klipin Plaka',
-  'klipin_omega': 'Klipin Omega',
-  'klipin_alcipan': 'Klipin Alçıpan',
-  'klipin_agraf': 'Klipin Agraf',
-  'klipin_dubel_civi': 'Klipin Dubel Çivi',
-  'klipin_vida_25': 'Klipin Vida 25mm',
-  'klipin_vida_35': 'Klipin Vida 35mm',
+  't_ana_tasiyici': 'T Ana Taşıyıcı',
+  'tali_120_tasiyici': 'Tali 120 Taşıyıcı',
+  'tali_60_tasiyici': 'Tali 60 Taşıyıcı',
+  'plaka': 'Plaka',
+  'omega': 'Omega',
   
   // Duvar Malzemeleri
-  'duvar_alcipan': 'Duvar Alçıpan',
-  'duvar_c_profili': 'Duvar C Profili',
-  'duvar_u_profili': 'Duvar U Profili',
-  'duvar_vida': 'Duvar Vida',
-  'duvar_dubel': 'Duvar Dubel',
-  
-  // Zemin Malzemeleri
-  'zemin_alcipan': 'Zemin Alçıpan',
-  'zemin_c_profili': 'Zemin C Profili',
-  'zemin_u_profili': 'Zemin U Profili',
-  'zemin_vida': 'Zemin Vida',
-  'zemin_dubel': 'Zemin Dubel'
+  'alcipan': 'Alçıpan',
+  'agraf': 'Agraf',
+  'dubel_civi': 'Dubel Çivi',
+  'vida_25': 'Vida 25mm',
+  'vida_35': 'Vida 35mm'
 };
 
 interface TestResult {
@@ -115,12 +75,7 @@ interface SavedUrl {
   is_active: boolean;
 }
 
-interface TestHistory {
-  url: string;
-  selector: string;
-  result: TestResult;
-  timestamp: string;
-}
+// TestHistory interface kaldırıldı - sadece SavedUrl kullanılıyor
 
 export default function URLTesterPage() {
   const [url, setUrl] = useState('');
@@ -128,8 +83,8 @@ export default function URLTesterPage() {
   const [materialType, setMaterialType] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
-  const [testHistory, setTestHistory] = useState<TestHistory[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [priceMultiplier, setPriceMultiplier] = useState<number>(1);
+  // Test geçmişi kaldırıldı - sadece kaydedilmiş URL'ler kullanılacak
   const [savedUrls, setSavedUrls] = useState<SavedUrl[]>([]);
   const [showSavedUrls, setShowSavedUrls] = useState(false);
   const [selectedUrl, setSelectedUrl] = useState<SavedUrl | null>(null);
@@ -174,14 +129,7 @@ export default function URLTesterPage() {
       const testResult: TestResult = await response.json();
       setResult(testResult);
 
-      // Add to test history
-      const newHistoryItem: TestHistory = {
-        url,
-        selector,
-        result: testResult,
-        timestamp: new Date().toLocaleString('tr-TR'),
-      };
-      setTestHistory(prev => [newHistoryItem, ...prev.slice(0, 9)]); // Keep last 10
+      // Test geçmişi kaldırıldı - sadece kaydedilmiş URL'ler kullanılacak
     } catch (error) {
       console.error('URL test error:', error);
       setResult({
@@ -205,6 +153,16 @@ export default function URLTesterPage() {
       return;
     }
 
+    // Aynı URL zaten kayıtlı mı kontrol et
+    const existingUrl = savedUrls.find(savedUrl => 
+      savedUrl.url === url && savedUrl.material_type === materialType
+    );
+    
+    if (existingUrl) {
+      alert('Bu URL ve malzeme türü zaten kayıtlı!');
+      return;
+    }
+
     try {
       const response = await fetch('/api/admin/custom-scraping-urls', {
         method: 'POST',
@@ -215,6 +173,8 @@ export default function URLTesterPage() {
           url,
           selector,
           material_type: materialType,
+          test_result: result,
+          last_tested_at: new Date().toISOString(),
         }),
       });
 
@@ -236,7 +196,7 @@ export default function URLTesterPage() {
   };
 
   const handleSetAsDefaultPrice = async (savedUrl: SavedUrl) => {
-    if (!savedUrl.test_result.success || !savedUrl.test_result.price) {
+    if (!savedUrl.test_result || !savedUrl.test_result.success || !savedUrl.test_result.price) {
       alert('Bu URL için geçerli bir fiyat bulunamadı!');
       return;
     }
@@ -272,7 +232,10 @@ export default function URLTesterPage() {
       return;
     }
 
-    if (confirm(`${MATERIAL_NAMES[materialType]} için varsayılan fiyatı ₺${result.data.price} olarak ayarlamak istediğinizden emin misiniz?`)) {
+    const originalPrice = result.data.price;
+    const finalPrice = originalPrice * priceMultiplier;
+
+    if (confirm(`${MATERIAL_NAMES[materialType]} için varsayılan fiyatı ₺${originalPrice} × ${priceMultiplier} = ₺${finalPrice.toFixed(2)} olarak ayarlamak istediğinizden emin misiniz?`)) {
       try {
         const response = await fetch('/api/admin/update-material-price-simple', {
           method: 'POST',
@@ -281,7 +244,7 @@ export default function URLTesterPage() {
           },
           body: JSON.stringify({
             material_type: materialType,
-            price: result.data.price,
+            price: finalPrice,
           }),
         });
 
@@ -329,9 +292,7 @@ export default function URLTesterPage() {
     setSelectedUrl(savedUrl);
   };
 
-  const clearHistory = () => {
-    setTestHistory([]);
-  };
+  // Test geçmişi kaldırıldı
 
   return (
     <AdminLayout>
@@ -349,7 +310,7 @@ export default function URLTesterPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Test Form */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">URL Test Et</h2>
+            <h2 className="text-lg font-semibold mb-4 text-gray-900">URL Test Et</h2>
             
             <div className="space-y-4">
               <div>
@@ -361,7 +322,7 @@ export default function URLTesterPage() {
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://example.com/product"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
                 />
               </div>
 
@@ -374,7 +335,7 @@ export default function URLTesterPage() {
                   value={selector}
                   onChange={(e) => setSelector(e.target.value)}
                   placeholder=".price (tek selector girin)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
                 />
               </div>
 
@@ -385,7 +346,7 @@ export default function URLTesterPage() {
                 <select
                   value={materialType}
                   onChange={(e) => setMaterialType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 >
                   <option value="">Malzeme seçin...</option>
                   {MATERIAL_TYPES.map((type) => (
@@ -439,7 +400,7 @@ export default function URLTesterPage() {
 
           {/* Test Result */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Test Sonucu</h2>
+            <h2 className="text-lg font-semibold mb-4 text-gray-900">Test Sonucu</h2>
             
             {result ? (
               <div className="space-y-4">
@@ -449,7 +410,7 @@ export default function URLTesterPage() {
                       <CheckIcon className="h-5 w-5 text-green-600 mr-2" />
                       <span className="text-green-800 font-medium">Test Başarılı</span>
                     </div>
-                    <div className="space-y-2 text-sm">
+                    <div className="space-y-2 text-sm text-gray-800">
                       <div><strong>Fiyat:</strong> ₺{result.data?.price}</div>
                       <div><strong>Başlık:</strong> {result.data?.title}</div>
                       <div><strong>Stok:</strong> {result.data?.availability}</div>
@@ -461,7 +422,22 @@ export default function URLTesterPage() {
                       </div>
                     )}
                     {materialType && (
-                      <div className="mt-3">
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <label className="text-sm text-gray-700">Çarpan:</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            value={priceMultiplier}
+                            onChange={(e) => setPriceMultiplier(parseFloat(e.target.value) || 1)}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="1.00"
+                          />
+                          <span className="text-xs text-gray-500">
+                            = ₺{((result.data?.price || 0) * priceMultiplier).toFixed(2)}
+                          </span>
+                        </div>
                         <button
                           onClick={handleSetAsDefaultPriceFromResult}
                           className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 flex items-center"
@@ -505,9 +481,9 @@ export default function URLTesterPage() {
                             <div className="mt-2">
                               <strong>Yaygın Selector'lar:</strong>
                               <ul className="ml-2 space-y-1">
-                                {Object.entries(result.debug_info.commonSelectors).map(([selector, count]) => (
+                                {result.debug_info.commonSelectors && Object.entries(result.debug_info.commonSelectors).map(([selector, count]) => (
                                   <li key={selector}>
-                                    {selector}: {count} element
+                                    {selector}: {String(count)} element
                                   </li>
                                 ))}
                               </ul>
@@ -532,7 +508,7 @@ export default function URLTesterPage() {
         {/* Saved URLs */}
         <div className="mt-6 bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Kaydedilmiş URL'ler</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Kaydedilmiş URL'ler</h2>
             <button
               onClick={() => setShowSavedUrls(!showSavedUrls)}
               className="text-blue-600 hover:text-blue-800 text-sm"
@@ -544,32 +520,29 @@ export default function URLTesterPage() {
           {showSavedUrls && (
             <div className="space-y-4">
               {savedUrls.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {savedUrls.map((savedUrl) => (
-                    <div key={savedUrl.id} className="border rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <h3 className="font-medium text-sm">
+                    <div key={savedUrl.id} className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base text-gray-900 truncate">
                             {MATERIAL_NAMES[savedUrl.material_type]}
                           </h3>
-                          <p className="text-xs text-gray-600 truncate">
+                          <p className="text-sm text-gray-600 truncate mt-1" title={savedUrl.url}>
                             {savedUrl.url}
                           </p>
-                          <p className="text-xs text-gray-500">
-                            Selector: {savedUrl.selector}
-                          </p>
                         </div>
-                        <div className="flex space-x-1">
+                        <div className="flex space-x-2 ml-2 flex-shrink-0">
                           <button
                             onClick={() => handleLoadSavedUrl(savedUrl)}
-                            className="text-blue-600 hover:text-blue-800"
+                            className="text-blue-600 hover:text-blue-800 p-1"
                             title="Yükle"
                           >
                             <PencilIcon className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteUrl(savedUrl.id)}
-                            className="text-red-600 hover:text-red-800"
+                            className="text-red-600 hover:text-red-800 p-1"
                             title="Sil"
                           >
                             <TrashIcon className="h-4 w-4" />
@@ -577,28 +550,34 @@ export default function URLTesterPage() {
                         </div>
                       </div>
                       
-                      <div className="space-y-2">
-                        {savedUrl.test_result.success ? (
+                      <div className="mt-3">
+                        {savedUrl.test_result && savedUrl.test_result.success ? (
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-green-600">
-                              ₺{savedUrl.test_result.price}
-                            </span>
+                            <div className="flex items-center space-x-2">
+                              <CheckIcon className="h-4 w-4 text-green-600 flex-shrink-0" />
+                              <span className="text-sm font-medium text-green-600">
+                                Başarılı
+                              </span>
+                              <span className="text-sm font-semibold text-gray-900">
+                                ₺{savedUrl.test_result.price}
+                              </span>
+                            </div>
                             <button
                               onClick={() => handleSetAsDefaultPrice(savedUrl)}
-                              className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-200 flex items-center"
+                              className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-200 flex items-center flex-shrink-0"
                             >
                               <StarIcon className="h-3 w-3 mr-1" />
-                              Varsayılan Yap
+                              Varsayılan
                             </button>
                           </div>
                         ) : (
-                          <span className="text-sm text-red-600">
-                            Test Başarısız
-                          </span>
+                          <div className="flex items-center space-x-2">
+                            <XMarkIcon className="h-4 w-4 text-red-600 flex-shrink-0" />
+                            <span className="text-sm font-medium text-red-600">
+                              Başarısız
+                            </span>
+                          </div>
                         )}
-                        <p className="text-xs text-gray-500">
-                          Son test: {new Date(savedUrl.last_tested_at).toLocaleString('tr-TR')}
-                        </p>
                       </div>
                     </div>
                   ))}
@@ -613,60 +592,7 @@ export default function URLTesterPage() {
           )}
         </div>
 
-        {/* Test History */}
-        <div className="mt-6 bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Test Geçmişi</h2>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className="text-blue-600 hover:text-blue-800 text-sm"
-              >
-                {showHistory ? 'Gizle' : 'Göster'}
-              </button>
-              {testHistory.length > 0 && (
-                <button
-                  onClick={clearHistory}
-                  className="text-red-600 hover:text-red-800 text-sm"
-                >
-                  Temizle
-                </button>
-              )}
-            </div>
-          </div>
-
-          {showHistory && testHistory.length > 0 && (
-            <div className="space-y-3">
-              {testHistory.map((item, index) => (
-                <div key={index} className="border rounded-lg p-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium truncate">{item.url}</p>
-                      <p className="text-xs text-gray-600">Selector: {item.selector}</p>
-                      <p className="text-xs text-gray-500">{item.timestamp}</p>
-                    </div>
-                    <div className="ml-2">
-                      {item.result.success ? (
-                        <CheckIcon className="h-5 w-5 text-green-600" />
-                      ) : (
-                        <XMarkIcon className="h-5 w-5 text-red-600" />
-                      )}
-                    </div>
-                  </div>
-                  {item.result.success ? (
-                    <div className="text-sm text-green-600">
-                      Fiyat: ₺{item.result.data?.price} - {item.result.response_time_ms}ms
-                    </div>
-                  ) : (
-                    <div className="text-sm text-red-600">
-                      Hata: {item.result.error}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Test Geçmişi kaldırıldı - sadece Kaydedilmiş URL'ler kullanılıyor */}
       </div>
     </AdminLayout>
   );

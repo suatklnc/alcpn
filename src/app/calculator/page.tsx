@@ -13,6 +13,7 @@ type CalculatorMode = 'single' | 'multi';
 export default function CalculatorPage() {
   const [mode, setMode] = useState<CalculatorMode>('single');
   const [results, setResults] = useState<CalculationResult[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { user } = useAuth();
 
   const handleCalculate = (newResults: CalculationResult[]) => {
@@ -34,16 +35,34 @@ export default function CalculatorPage() {
     alert(`"${name}" adlı hesaplama kaydedildi! (Henüz backend entegrasyonu yapılmadı)`);
   };
 
+  const handleRefreshPrices = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+
   return (
     <Layout>
       <div className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Malzeme Hesaplayıcı
-          </h1>
-          <p className="mt-2 text-base sm:text-lg text-gray-600">
-            Malzeme miktarlarını ve maliyetlerini kolayca hesaplayın
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                Malzeme Hesaplayıcı
+              </h1>
+              <p className="mt-2 text-base sm:text-lg text-gray-600">
+                Malzeme miktarlarını ve maliyetlerini kolayca hesaplayın
+              </p>
+            </div>
+            <button
+              onClick={handleRefreshPrices}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center"
+              title="Fiyatları yenile"
+            >
+              <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Fiyatları Yenile
+            </button>
+          </div>
         </div>
 
         {/* Mode Selector */}
@@ -76,9 +95,9 @@ export default function CalculatorPage() {
           {/* Form */}
           <div>
             {mode === 'single' ? (
-              <CalculationForm onCalculate={handleCalculate} />
+              <CalculationForm onCalculate={handleCalculate} refreshKey={refreshKey} />
             ) : (
-              <MultiMaterialForm onCalculate={handleCalculate} />
+              <MultiMaterialForm onCalculate={handleCalculate} refreshKey={refreshKey} />
             )}
           </div>
 

@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth-context';
 
 interface CalculationFormProps {
   onCalculate: (results: CalculationResult[]) => void;
+  refreshKey?: number;
 }
 
 type FormData = {
@@ -19,7 +20,7 @@ type FormData = {
   customPrices?: Record<string, number>;
 };
 
-export default function CalculationForm({ onCalculate }: CalculationFormProps) {
+export default function CalculationForm({ onCalculate, refreshKey }: CalculationFormProps) {
   const [isCalculating, setIsCalculating] = useState(false);
   const [availableMaterials, setAvailableMaterials] = useState<string[]>([]);
   const [materialPrices, setMaterialPrices] = useState<Record<string, number>>({});
@@ -46,21 +47,40 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
   const watchedAltTuru = watch('altTuru');
   const watchedCustomPrices = watch('customPrices');
 
+  // Malzeme fiyatlarını yükle
+  const fetchMaterialPrices = async () => {
+    try {
+      const response = await fetch('/api/material-prices');
+      if (response.ok) {
+        const prices = await response.json();
+        setMaterialPrices(prices);
+        console.log('Material prices updated:', prices);
+      }
+    } catch (error) {
+      console.error('Error fetching material prices:', error);
+    }
+  };
+
   // Component mount olduğunda malzeme fiyatlarını yükle
   useEffect(() => {
-    const fetchMaterialPrices = async () => {
-      try {
-        const response = await fetch('/api/material-prices');
-        if (response.ok) {
-          const prices = await response.json();
-          setMaterialPrices(prices);
-        }
-      } catch (error) {
-        console.error('Error fetching material prices:', error);
-      }
-    };
-    
     fetchMaterialPrices();
+  }, []);
+
+  // refreshKey değiştiğinde fiyatları yenile
+  useEffect(() => {
+    if (refreshKey && refreshKey > 0) {
+      fetchMaterialPrices();
+    }
+  }, [refreshKey]);
+
+  // Sayfa focus olduğunda fiyatları yenile (URL Tester'dan döndüğünde)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchMaterialPrices();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   // İş türü veya alt tür değiştiğinde mevcut malzemeleri güncelle
@@ -157,10 +177,12 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
   const getDefaultPrice = (materialType: string) => {
     // Önce cache'den al, yoksa default fiyattan al
     if (materialPrices[materialType]) {
+      console.log(`Using cached price for ${materialType}: ${materialPrices[materialType]}`);
       return materialPrices[materialType];
     }
     
     const materialInfo = CalculationEngine.getMaterialInfo(materialType as MaterialType);
+    console.log(`Using default price for ${materialType}: ${materialInfo.defaultUnitPrice}`);
     return materialInfo.defaultUnitPrice;
   };
 
@@ -269,7 +291,7 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
                         setValue('customPrices', newPrices);
                       }
                     }}
-                    className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900"
+                    className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
                     placeholder={`Varsayılan: ${getDefaultPrice(materialType)} TL`}
                   />
                   <span className="text-xs text-gray-500">

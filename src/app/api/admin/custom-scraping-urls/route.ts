@@ -75,6 +75,8 @@ export async function POST(request: NextRequest) {
         url: body.url,
         material_type: body.material_type,
         selector: body.selector,
+        test_result: body.test_result || null,
+        last_tested_at: body.last_tested_at || null,
         is_active: body.is_active ?? true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

@@ -69,6 +69,12 @@ export interface CreateCustomScrapingUrlRequest {
   url: string;
   material_type: string;
   selector: string;
+  test_result?: {
+    success: boolean;
+    price?: number;
+    error?: string;
+  };
+  last_tested_at?: string;
   is_active?: boolean;
 }
 
