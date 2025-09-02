@@ -108,15 +108,13 @@ export default function MultiMaterialForm({ onCalculate, refreshKey }: MultiMate
   };
 
   const getDefaultPrice = (materialType: string) => {
-    // Önce cache'den al, yoksa default fiyattan al
+    // Sadece Supabase'den gelen fiyatları kullan
     if (materialPrices[materialType]) {
-      console.log(`Using cached price for ${materialType}: ${materialPrices[materialType]}`);
       return materialPrices[materialType];
     }
     
-    const materialInfo = CalculationEngine.getMaterialInfo(materialType as MaterialType);
-    console.log(`Using default price for ${materialType}: ${materialInfo.defaultUnitPrice}`);
-    return materialInfo.defaultUnitPrice;
+    // Supabase'den fiyat gelmemişse 0 döndür (placeholder olarak)
+    return 0;
   };
 
   const onSubmit = async (data: FormData) => {

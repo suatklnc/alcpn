@@ -20,14 +20,16 @@ export class CalculationEngine {
     return MATERIAL_COEFFICIENTS[materialType];
   }
 
-  // Varsayılan birim fiyatı getir (Supabase'den güncel fiyatları al)
+  // Varsayılan birim fiyatı getir (Sadece Supabase'den güncel fiyatları al)
   static async getUnitPrice(materialType: MaterialType): Promise<number> {
     try {
       const prices = await this.getMaterialPrices();
-      return prices[materialType] || MATERIAL_COEFFICIENTS[materialType].defaultUnitPrice;
+      // Sadece Supabase'den gelen fiyatları kullan, hardcoded değerleri kullanma
+      return prices[materialType] || 0;
     } catch (error) {
       console.error('Error fetching material price:', error);
-      return MATERIAL_COEFFICIENTS[materialType].defaultUnitPrice;
+      // Hata durumunda da hardcoded değer kullanma, 0 döndür
+      return 0;
     }
   }
 
@@ -52,12 +54,8 @@ export class CalculationEngine {
       console.error('Error fetching material prices:', error);
     }
 
-    // Fallback: default fiyatları döndür
-    const defaultPrices: Record<string, number> = {};
-    Object.values(MATERIAL_COEFFICIENTS).forEach(material => {
-      defaultPrices[material.type] = material.defaultUnitPrice;
-    });
-    return defaultPrices;
+    // Fallback: boş fiyat listesi döndür (hardcoded değerler kullanma)
+    return {};
   }
 
   // Tek malzeme hesaplama
