@@ -8,6 +8,7 @@ import {
   DuvarTuru,
   MATERIAL_COEFFICIENTS,
 } from '@/types/calculation';
+import { createClient } from '@/lib/supabase/server';
 
 // Hesaplama motoru sınıfı
 export class CalculationEngine {
@@ -43,13 +44,28 @@ export class CalculationEngine {
     }
 
     try {
-      const response = await fetch('/api/material-prices');
-      if (response.ok) {
-        const prices = await response.json();
-        this.materialPricesCache = prices;
-        this.cacheTimestamp = now;
-        return prices;
+      // Server-side'da doğrudan Supabase'den veri çek
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from('material_prices')
+        .select('material_type, unit_price');
+
+      if (error) {
+        console.error('Error fetching material prices from Supabase:', error);
+        return {};
       }
+
+      // Veriyi Record<string, number> formatına çevir
+      const prices: Record<string, number> = {};
+      if (data) {
+        data.forEach(item => {
+          prices[item.material_type] = item.unit_price;
+        });
+      }
+
+      this.materialPricesCache = prices;
+      this.cacheTimestamp = now;
+      return prices;
     } catch (error) {
       console.error('Error fetching material prices:', error);
     }
