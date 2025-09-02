@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { calculationFormSchema } from '@/lib/validation/calculation-schema';
 import { CalculationEngine } from '@/lib/calculation-engine';
 import { CalculationResult } from '@/types/calculation';
+import { useAuth } from '@/lib/auth-context';
 
 interface CalculationFormProps {
   onCalculate: (results: CalculationResult[]) => void;
@@ -21,6 +22,7 @@ type FormData = {
 export default function CalculationForm({ onCalculate }: CalculationFormProps) {
   const [isCalculating, setIsCalculating] = useState(false);
   const [availableMaterials, setAvailableMaterials] = useState<string[]>([]);
+  const { user } = useAuth();
 
   const {
     register,
@@ -49,6 +51,11 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
   }, [watchedIsTuru, watchedAltTuru]);
 
   const onSubmit = async (data: FormData) => {
+    if (!user) {
+      alert('Hesaplama yapmak için giriş yapmalısınız.');
+      return;
+    }
+
     setIsCalculating(true);
     
     try {

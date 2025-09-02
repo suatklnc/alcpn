@@ -7,6 +7,7 @@ import { multiMaterialFormSchema } from '@/lib/validation/calculation-schema';
 import { CalculationEngine } from '@/lib/calculation-engine';
 import { CalculationResult } from '@/types/calculation';
 import { materialTypeLabels } from '@/lib/validation/calculation-schema';
+import { useAuth } from '@/lib/auth-context';
 
 interface MultiMaterialFormProps {
   onCalculate: (results: CalculationResult[]) => void;
@@ -22,6 +23,7 @@ type FormData = {
 
 export default function MultiMaterialForm({ onCalculate }: MultiMaterialFormProps) {
   const [isCalculating, setIsCalculating] = useState(false);
+  const { user } = useAuth();
 
   const {
     register,
@@ -73,6 +75,11 @@ export default function MultiMaterialForm({ onCalculate }: MultiMaterialFormProp
   };
 
   const onSubmit = async (data: FormData) => {
+    if (!user) {
+      alert('Hesaplama yapmak için giriş yapmalısınız.');
+      return;
+    }
+
     setIsCalculating(true);
     
     try {
