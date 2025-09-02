@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import Layout from '@/components/Layout';
 
@@ -92,11 +93,15 @@ export default function Home() {
           )}
 
           {/* Features Grid */}
-          <div className="mt-12 sm:mt-16 grid grid-cols-1 gap-6 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white mb-4">
+          <div className="mt-12 sm:mt-16 grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Hızlı Hesaplama Card */}
+            <Link 
+              href="/calculator" 
+              className="bg-white rounded-lg shadow-md p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200 block"
+            >
+              <div className="flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 rounded-md bg-indigo-500 text-white mb-3 sm:mb-4">
                 <svg
-                  className="h-6 w-6"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -109,18 +114,19 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
                 Hızlı Hesaplama
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-xs sm:text-sm">
                 Malzeme miktarlarını hızlı ve doğru bir şekilde hesaplayın.
               </p>
-            </div>
+            </Link>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white mb-4">
+            {/* Güncel Fiyatlar Card */}
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <div className="flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 rounded-md bg-indigo-500 text-white mb-3 sm:mb-4">
                 <svg
-                  className="h-6 w-6"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -133,19 +139,23 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
                 Güncel Fiyatlar
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-xs sm:text-sm">
                 Otomatik olarak güncellenen malzeme fiyatları ile bütçenizi
                 planlayın.
               </p>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white mb-4">
+            {/* Hesaplama Geçmişi Card */}
+            <Link 
+              href="/my-calculations" 
+              className="bg-white rounded-lg shadow-md p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200 block"
+            >
+              <div className="flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 rounded-md bg-indigo-500 text-white mb-3 sm:mb-4">
                 <svg
-                  className="h-6 w-6"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -158,14 +168,14 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
                 Hesaplama Geçmişi
               </h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-xs sm:text-sm">
                 Geçmiş hesaplamalarınızı kaydedin ve istediğiniz zaman tekrar
                 görüntüleyin.
               </p>
-            </div>
+            </Link>
           </div>
         </div>
     </div>

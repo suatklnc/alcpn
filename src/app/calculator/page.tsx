@@ -47,11 +47,11 @@ export default function CalculatorPage() {
         </div>
 
         {/* Mode Selector */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
+        <div className="mb-4 sm:mb-6">
+          <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-lg w-full sm:w-fit">
             <button
               onClick={() => setMode('single')}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
                 mode === 'single'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
@@ -61,7 +61,7 @@ export default function CalculatorPage() {
             </button>
             <button
               onClick={() => setMode('multi')}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
                 mode === 'multi'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
@@ -72,7 +72,7 @@ export default function CalculatorPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           {/* Form */}
           <div>
             {mode === 'single' ? (

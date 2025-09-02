@@ -179,20 +179,20 @@ export default function MyCalculationsPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Hesaplama Geçmişim</h1>
-          <p className="mt-2 text-gray-600">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Hesaplama Geçmişim</h1>
+          <p className="mt-2 text-sm sm:text-base text-gray-600">
             Daha önce yaptığınız tüm hesaplamaları görüntüleyin
           </p>
         </div>
 
         {/* New Calculation Button */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Link
             href="/calculator"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-xs sm:text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            <CalculatorIcon className="h-4 w-4 mr-2" />
+            <CalculatorIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
             Yeni Hesaplama
           </Link>
         </div>
@@ -216,40 +216,40 @@ export default function MyCalculationsPage() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {calculations.map((calculation) => (
               <div
                 key={calculation.id}
                 className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
               >
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   {/* Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center">
-                      <CalculatorIcon className="h-5 w-5 text-blue-600 mr-2" />
-                      <span className="text-sm font-medium text-gray-900">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <div className="flex items-center min-w-0 flex-1">
+                      <CalculatorIcon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mr-2 flex-shrink-0" />
+                      <span className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                         {getJobTypeLabel(calculation.job_type)}
                       </span>
                     </div>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2 flex-shrink-0">
                       {getSubTypeLabel(calculation.sub_type)}
                     </span>
                   </div>
 
                   {/* Details */}
-                  <div className="space-y-3">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <CalendarIcon className="h-4 w-4 mr-2" />
-                      {formatDate(calculation.created_at)}
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                      <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-2 flex-shrink-0" />
+                      <span className="truncate">{formatDate(calculation.created_at)}</span>
                     </div>
                     
-                    <div className="flex items-center text-sm text-gray-600">
+                    <div className="flex items-center text-xs sm:text-sm text-gray-600">
                       <span className="mr-2">Alan:</span>
                       <span className="font-medium">{calculation.area} m²</span>
                     </div>
 
-                    <div className="flex items-center text-sm text-gray-600">
-                      <CurrencyDollarIcon className="h-4 w-4 mr-2" />
+                    <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                      <CurrencyDollarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-2 flex-shrink-0" />
                       <span className="mr-2">Toplam:</span>
                       <span className="font-medium text-green-600">
                         {formatCurrency(calculation.total_cost)}
@@ -258,10 +258,10 @@ export default function MyCalculationsPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-6 space-y-2">
+                  <div className="mt-4 sm:mt-6 space-y-2">
                     <Link
                       href={`/calculation/${calculation.id}`}
-                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      className="w-full inline-flex justify-center items-center px-3 sm:px-4 py-2 border border-gray-300 shadow-sm text-xs sm:text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                       Detayları Görüntüle
                     </Link>
@@ -269,16 +269,16 @@ export default function MyCalculationsPage() {
                     <button
                       onClick={() => handleDeleteCalculation(calculation.id)}
                       disabled={deletingId === calculation.id}
-                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full inline-flex justify-center items-center px-3 sm:px-4 py-2 border border-red-300 shadow-sm text-xs sm:text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {deletingId === calculation.id ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
+                          <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-red-600 mr-2"></div>
                           Siliniyor...
                         </>
                       ) : (
                         <>
-                          <TrashIcon className="h-4 w-4 mr-2" />
+                          <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           Sil
                         </>
                       )}
