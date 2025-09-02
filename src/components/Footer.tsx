@@ -42,7 +42,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/history"
+                  href="/my-calculations"
                   className="text-gray-400 hover:text-white transition-colors text-sm"
                 >
                   Geçmiş
