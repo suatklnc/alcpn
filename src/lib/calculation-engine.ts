@@ -326,7 +326,6 @@ export class CalculationEngine {
         't_ana_tasiyici',
         'tali_120_tasiyici',
         'tali_60_tasiyici',
-        'plaka',
         'omega',
       ];
     } else {

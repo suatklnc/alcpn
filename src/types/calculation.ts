@@ -26,7 +26,6 @@ export type MaterialType =
   | 't_ana_tasiyici'
   | 'tali_120_tasiyici'
   | 'tali_60_tasiyici'
-  | 'plaka'
   | 'omega'
   | 'celik_dubel'
   | 'clip_in_aski_masasi'
@@ -152,14 +151,6 @@ export const MATERIAL_COEFFICIENTS: Record<MaterialType, MaterialInfo> = {
     coefficient: 1.47, // 1.47 × m²
     description: 'Tali 60 taşıyıcı profil',
     defaultUnitPrice: 4,
-  },
-  plaka: {
-    type: 'plaka',
-    name: 'Plaka',
-    unit: 'adet',
-    coefficient: 3, // 3 × m²
-    description: 'Plaka malzeme',
-    defaultUnitPrice: 25,
   },
   omega: {
     type: 'omega',

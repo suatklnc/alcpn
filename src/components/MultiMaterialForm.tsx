@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { multiMaterialFormSchema } from '@/lib/validation/calculation-schema';
 import { getAvailableMaterials } from '@/lib/material-utils';
-import { CalculationResult } from '@/types/calculation';
+import { CalculationResult, MaterialType } from '@/types/calculation';
 import { materialTypeLabels } from '@/lib/validation/calculation-schema';
 import { useAuth } from '@/lib/auth-context';
 
@@ -17,7 +17,7 @@ type FormData = {
   area: number;
   isTuru: 'tavan' | 'duvar';
   altTuru: 'duz_tavan' | 'karopan_tavan' | 'klipin_tavan' | 'giydirme_duvar' | 'tek_kat_tek_iskelet' | 'cift_kat_cift_iskelet';
-  selectedMaterials: ('beyaz_alcipan' | 'c_profili' | 'u_profili' | 'aski_teli' | 'aski_masasi' | 'klips' | 'vida' | 't_ana_tasiyici' | 'tali_120_tasiyici' | 'tali_60_tasiyici' | 'plaka' | 'omega' | 'celik_dubel' | 'clip_in_aski_masasi' | 'alüminyum_plaka' | 'duvar_u_profili' | 'duvar_c_profili' | 'agraf' | 'dubel_civi' | 'duvar_dubel' | 'vida_25' | 'vida_35')[];
+  selectedMaterials: MaterialType[];
 };
 
 export default function MultiMaterialForm({ onCalculate }: MultiMaterialFormProps) {
