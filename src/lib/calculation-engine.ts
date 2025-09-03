@@ -137,6 +137,20 @@ export class CalculationEngine {
         }
       }
       
+      // Duvar U profili katsayısını duvar türüne göre ayarla
+      if (materialType === 'duvar_u_profili' && isTuru === 'duvar') {
+        if (altTuru === 'cift_kat_cift_iskelet') {
+          coefficient = 0.58; // Çift kat çift iskelet için 0.58
+        }
+      }
+      
+      // Beyaz alçıpan katsayısını duvar türüne göre ayarla
+      if (materialType === 'beyaz_alcipan' && isTuru === 'duvar') {
+        if (altTuru === 'cift_kat_cift_iskelet') {
+          coefficient = 1.47; // Çift kat çift iskelet için 1.47
+        }
+      }
+      
       const quantity = area * coefficient;
       
       // Önce customPrices'tan, sonra genel unitPrice'tan, son olarak güncel fiyattan al
@@ -212,6 +226,20 @@ export class CalculationEngine {
         if (materialType === 'duvar_dubel' && jobType === 'duvar') {
           if (subType === 'cift_kat_cift_iskelet') {
             coefficient = 3.48; // Çift kat çift iskelet için 3.48
+          }
+        }
+        
+        // Duvar U profili katsayısını duvar türüne göre ayarla
+        if (materialType === 'duvar_u_profili' && jobType === 'duvar') {
+          if (subType === 'cift_kat_cift_iskelet') {
+            coefficient = 0.58; // Çift kat çift iskelet için 0.58
+          }
+        }
+        
+        // Beyaz alçıpan katsayısını duvar türüne göre ayarla
+        if (materialType === 'beyaz_alcipan' && jobType === 'duvar') {
+          if (subType === 'cift_kat_cift_iskelet') {
+            coefficient = 1.47; // Çift kat çift iskelet için 1.47
           }
         }
         
