@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import Layout from '@/components/Layout';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function Home() {
+function HomeContent() {
   const { user, loading } = useAuth();
   const searchParams = useSearchParams();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -210,5 +210,19 @@ export default function Home() {
         </div>
     </div>
     </Layout>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-lg">Yükleniyor...</div>
+        </div>
+      </Layout>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

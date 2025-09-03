@@ -1,6 +1,5 @@
 import {
   MaterialType,
-  MaterialInfo,
   CalculationParams,
   CalculationResult,
   IsTuru,
@@ -254,7 +253,7 @@ export class CalculationEngine {
         'c_profili',
         'vida_25',
         'vida_35',
-        'alcipan',
+        'beyaz_alcipan',
         'agraf',
         'dubel_civi',
       ];

@@ -38,8 +38,7 @@ export async function POST(request: NextRequest) {
           'Accept-Encoding': 'gzip, deflate, br',
           'Connection': 'keep-alive',
           'Upgrade-Insecure-Requests': '1',
-        },
-        timeout: 15000, // 15 second timeout
+        }
       });
 
       if (!response.ok) {
@@ -51,29 +50,29 @@ export async function POST(request: NextRequest) {
       
       // Parse HTML with Cheerio
       const $ = cheerio.load(html);
-      let extractedData: any = {};
+      const extractedData: Record<string, unknown> = {};
       
       try {
         // Extract price using the provided selector
-        const priceMatch = extractPriceWithCheerio($, selector);
+        const priceMatch = extractPriceWithCheerio($ as cheerio.CheerioAPI, selector);
         if (priceMatch) {
           extractedData.price = priceMatch;
         }
 
         // Try to extract title
-        const titleMatch = extractTitleWithCheerio($);
+        const titleMatch = extractTitleWithCheerio($ as cheerio.CheerioAPI);
         if (titleMatch) {
           extractedData.title = titleMatch;
         }
 
         // Try to extract availability
-        const availabilityMatch = extractAvailabilityWithCheerio($);
+        const availabilityMatch = extractAvailabilityWithCheerio($ as cheerio.CheerioAPI);
         if (availabilityMatch) {
           extractedData.availability = availabilityMatch;
         }
 
         // Try to extract image
-        const imageMatch = extractImageWithCheerio($);
+        const imageMatch = extractImageWithCheerio($ as cheerio.CheerioAPI);
         if (imageMatch) {
           extractedData.image = imageMatch;
         }
@@ -206,7 +205,7 @@ function extractPriceWithCheerio($: cheerio.CheerioAPI, selector: string): numbe
           const price = extractPriceFromJsonLd(jsonData);
           if (price) return price;
         }
-      } catch (e) {
+      } catch {
         // Ignore JSON parsing errors
       }
     }
@@ -272,12 +271,12 @@ function extractPriceFromText(text: string): number | null {
     }
 
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
 
-function extractPriceFromJsonLd(jsonData: any): number | null {
+function extractPriceFromJsonLd(jsonData: unknown): number | null {
   try {
     // Handle arrays
     if (Array.isArray(jsonData)) {
@@ -290,6 +289,7 @@ function extractPriceFromJsonLd(jsonData: any): number | null {
 
     // Handle objects
     if (typeof jsonData === 'object' && jsonData !== null) {
+      const data = jsonData as Record<string, unknown>;
       // Check for price fields
       const priceFields = [
         'price', 'offers', 'lowPrice', 'highPrice', 'priceRange',
@@ -297,24 +297,25 @@ function extractPriceFromJsonLd(jsonData: any): number | null {
       ];
 
       for (const field of priceFields) {
-        if (jsonData[field]) {
-          if (typeof jsonData[field] === 'number') {
-            return jsonData[field];
-          } else if (typeof jsonData[field] === 'string') {
-            const price = extractPriceFromText(jsonData[field]);
+        if (data[field]) {
+          if (typeof data[field] === 'number') {
+            return data[field] as number;
+          } else if (typeof data[field] === 'string') {
+            const price = extractPriceFromText(data[field] as string);
             if (price) return price;
-          } else if (typeof jsonData[field] === 'object') {
+          } else if (typeof data[field] === 'object' && data[field] !== null) {
             // Handle offers object
-            if (jsonData[field].price) {
-              if (typeof jsonData[field].price === 'number') {
-                return jsonData[field].price;
-              } else if (typeof jsonData[field].price === 'string') {
-                const price = extractPriceFromText(jsonData[field].price);
+            const offerData = data[field] as Record<string, unknown>;
+            if (offerData.price) {
+              if (typeof offerData.price === 'number') {
+                return offerData.price as number;
+              } else if (typeof offerData.price === 'string') {
+                const price = extractPriceFromText(offerData.price as string);
                 if (price) return price;
               }
             }
             // Recursive search
-            const price = extractPriceFromJsonLd(jsonData[field]);
+            const price = extractPriceFromJsonLd(data[field]);
             if (price) return price;
           }
         }
@@ -322,7 +323,7 @@ function extractPriceFromJsonLd(jsonData: any): number | null {
     }
 
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -353,7 +354,7 @@ function extractTitleWithCheerio($: cheerio.CheerioAPI): string | null {
     }
 
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -385,7 +386,7 @@ function extractAvailabilityWithCheerio($: cheerio.CheerioAPI): string | null {
     }
 
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -420,7 +421,7 @@ function extractImageWithCheerio($: cheerio.CheerioAPI): string | null {
     }
 
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

@@ -63,7 +63,7 @@ interface TestResult {
   response_time_ms: number;
   message?: string;
   html_preview?: string;
-  debug_info?: any;
+  debug_info?: Record<string, unknown>;
 }
 
 interface SavedUrl {
@@ -92,7 +92,7 @@ export default function URLTesterPage() {
   // Test geçmişi kaldırıldı - sadece kaydedilmiş URL'ler kullanılacak
   const [savedUrls, setSavedUrls] = useState<SavedUrl[]>([]);
   const [showSavedUrls, setShowSavedUrls] = useState(false);
-  const [selectedUrl, setSelectedUrl] = useState<SavedUrl | null>(null);
+  const [, setSelectedUrl] = useState<SavedUrl | null>(null);
 
   // Load saved URLs on component mount
   useEffect(() => {
@@ -308,7 +308,7 @@ export default function URLTesterPage() {
             URL Tester & Malzeme Fiyat Yöneticisi
           </h1>
           <p className="text-gray-600 mt-2">
-            URL'leri test edin, fiyatları çekin ve malzemeler için varsayılan fiyatları belirleyin
+            URL&apos;leri test edin, fiyatları çekin ve malzemeler için varsayılan fiyatları belirleyin
           </p>
         </div>
 
@@ -478,19 +478,15 @@ export default function URLTesterPage() {
                         </summary>
                         <div className="mt-1 p-2 bg-gray-100 rounded text-xs">
                           <div className="space-y-1">
-                            <div><strong>Toplam Element:</strong> {result.debug_info.totalElements}</div>
-                            <div><strong>Fiyat Elementleri:</strong> {result.debug_info.priceElements}</div>
-                            <div><strong>Meta Tag'ler:</strong> {result.debug_info.metaTags}</div>
-                            <div><strong>JSON-LD Script'ler:</strong> {result.debug_info.jsonLdScripts}</div>
+                            <div><strong>Toplam Element:</strong> {String(result.debug_info.totalElements)}</div>
+                            <div><strong>Fiyat Elementleri:</strong> {String(result.debug_info.priceElements)}</div>
+                            <div><strong>Meta Tag&apos;ler:</strong> {String(result.debug_info.metaTags)}</div>
+                            <div><strong>JSON-LD Script&apos;ler:</strong> {String(result.debug_info.jsonLdScripts)}</div>
                             <div className="mt-2">
-                              <strong>Yaygın Selector'lar:</strong>
-                              <ul className="ml-2 space-y-1">
-                                {result.debug_info.commonSelectors && Object.entries(result.debug_info.commonSelectors).map(([selector, count]) => (
-                                  <li key={selector}>
-                                    {selector}: {String(count)} element
-                                  </li>
-                                ))}
-                              </ul>
+                              <strong>Yaygın Selector&apos;lar:</strong>
+                              <div className="ml-2 text-xs">
+                                {result.debug_info.commonSelectors ? 'Mevcut' : 'Yok'}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -512,7 +508,7 @@ export default function URLTesterPage() {
         {/* Saved URLs */}
         <div className="mt-6 bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Kaydedilmiş URL'ler</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Kaydedilmiş URL&apos;ler</h2>
             <button
               onClick={() => setShowSavedUrls(!showSavedUrls)}
               className="text-blue-600 hover:text-blue-800 text-sm"
@@ -589,7 +585,7 @@ export default function URLTesterPage() {
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <p>Henüz kaydedilmiş URL yok</p>
-                  <p className="text-sm">Test yapıp URL'leri kaydedin</p>
+                  <p className="text-sm">Test yapıp URL&apos;leri kaydedin</p>
                 </div>
               )}
             </div>

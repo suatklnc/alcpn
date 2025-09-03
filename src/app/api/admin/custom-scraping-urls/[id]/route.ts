@@ -78,29 +78,15 @@ export async function PUT(
       }
     }
 
-    // Source validation
-    if (body.source_id) {
-      const { data: source, error: sourceError } = await supabase
-        .from('scraping_sources')
-        .select('id')
-        .eq('id', body.source_id)
-        .single();
-
-      if (sourceError || !source) {
-        return NextResponse.json(
-          { error: 'Scraping source not found' },
-          { status: 400 }
-        );
-      }
-    }
+    // Source validation removed - not needed for custom URLs
 
     // Update data hazırla
     const updateData: Record<string, unknown> = {};
-    if (body.name !== undefined) updateData.name = body.name;
     if (body.url !== undefined) updateData.url = body.url;
     if (body.material_type !== undefined) updateData.material_type = body.material_type;
-    if (body.source_id !== undefined) updateData.source_id = body.source_id;
-    if (body.custom_selectors !== undefined) updateData.custom_selectors = body.custom_selectors;
+    if (body.selector !== undefined) updateData.selector = body.selector;
+    if (body.test_result !== undefined) updateData.test_result = body.test_result;
+    if (body.last_tested_at !== undefined) updateData.last_tested_at = body.last_tested_at;
     if (body.is_active !== undefined) updateData.is_active = body.is_active;
 
     const { data: url, error } = await supabase

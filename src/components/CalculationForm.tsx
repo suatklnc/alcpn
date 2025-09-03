@@ -27,8 +27,6 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
     register,
     handleSubmit,
     watch,
-    setValue,
-    getValues,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(calculationFormSchema),
@@ -40,7 +38,6 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
   });
 
   const watchedIsTuru = watch('isTuru');
-  const watchedAltTuru = watch('altTuru');
 
 
 

@@ -4,9 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   HomeIcon,
-  CogIcon,
-  LinkIcon,
-  ChartBarIcon,
   BeakerIcon,
   ArrowLeftOnRectangleIcon
 } from '@heroicons/react/24/outline';
