@@ -78,6 +78,10 @@ export async function POST(request: NextRequest) {
         test_result: body.test_result || null,
         last_tested_at: body.last_tested_at || null,
         is_active: body.is_active ?? true,
+        // Auto-scraping fields
+        auto_scraping_enabled: body.auto_scraping_enabled ?? false,
+        auto_scraping_interval_hours: body.auto_scraping_interval_hours ?? 24,
+        price_multiplier: body.price_multiplier ?? 1.00,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

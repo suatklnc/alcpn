@@ -13,7 +13,11 @@ import {
   XMarkIcon, 
   StarIcon,
   TrashIcon,
-  PencilIcon
+  PencilIcon,
+  PlayIcon,
+  PauseIcon,
+  ArrowPathIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 
 const MATERIAL_TYPES = [
@@ -79,6 +83,12 @@ interface SavedUrl {
     error?: string;
   };
   is_active: boolean;
+  // Auto-scraping fields
+  auto_scraping_enabled?: boolean;
+  auto_scraping_interval_hours?: number;
+  price_multiplier?: number;
+  last_auto_scraped_at?: string;
+  next_auto_scrape_at?: string;
 }
 
 // TestHistory interface kaldırıldı - sadece SavedUrl kullanılıyor
@@ -98,6 +108,15 @@ export default function URLTesterPage() {
   const [savedUrls, setSavedUrls] = useState<SavedUrl[]>([]);
   const [showSavedUrls, setShowSavedUrls] = useState(false);
   const [, setSelectedUrl] = useState<SavedUrl | null>(null);
+  
+  // Auto-scraping states
+  const [autoScrapingEnabled, setAutoScrapingEnabled] = useState<boolean>(false);
+  const [autoScrapingInterval, setAutoScrapingInterval] = useState<number>(24);
+  const [isAutoScrapingRunning, setIsAutoScrapingRunning] = useState<boolean>(false);
+  const [autoScrapingIntervalId, setAutoScrapingIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [customInterval, setCustomInterval] = useState<number>(5); // Saniye cinsinden
+  const [intervalUnit, setIntervalUnit] = useState<'seconds' | 'minutes' | 'hours'>('seconds');
+  const [isAutoScrapingActive, setIsAutoScrapingActive] = useState<boolean>(false);
 
   // Authentication check
   useEffect(() => {
@@ -116,6 +135,13 @@ export default function URLTesterPage() {
       fetchSavedUrls();
     }
   }, [isChecking, user]);
+
+  // Component unmount olduğunda interval'ı temizle
+  useEffect(() => {
+    return () => {
+      stopCustomAutoScraping();
+    };
+  }, []);
 
   const fetchSavedUrls = async () => {
     try {
@@ -198,6 +224,9 @@ export default function URLTesterPage() {
           material_type: materialType,
           test_result: result,
           last_tested_at: new Date().toISOString(),
+          auto_scraping_enabled: autoScrapingEnabled,
+          auto_scraping_interval_hours: autoScrapingInterval,
+          price_multiplier: priceMultiplier,
         }),
       });
 
@@ -313,6 +342,161 @@ export default function URLTesterPage() {
     setSelector(savedUrl.selector);
     setMaterialType(savedUrl.material_type);
     setSelectedUrl(savedUrl);
+    setAutoScrapingEnabled(savedUrl.auto_scraping_enabled || false);
+    setAutoScrapingInterval(savedUrl.auto_scraping_interval_hours || 24);
+    setPriceMultiplier(savedUrl.price_multiplier || 1);
+  };
+
+  const handleToggleAutoScraping = async (savedUrl: SavedUrl) => {
+    const newEnabled = !savedUrl.auto_scraping_enabled;
+    
+    try {
+      const response = await fetch(`/api/admin/custom-scraping-urls/${savedUrl.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          auto_scraping_enabled: newEnabled,
+          // Eğer aktif ediliyorsa, hemen çekim yapılabilmesi için next_auto_scrape_at'i şu an olarak ayarla
+          ...(newEnabled && {
+            next_auto_scrape_at: new Date().toISOString()
+          })
+        }),
+      });
+
+      if (response.ok) {
+        alert(`Otomatik fiyat çekme ${newEnabled ? 'etkinleştirildi' : 'devre dışı bırakıldı'}!`);
+        fetchSavedUrls();
+      } else {
+        alert('Otomatik fiyat çekme ayarı güncellenirken hata oluştu');
+      }
+    } catch (error) {
+      console.error('Error toggling auto-scraping:', error);
+      alert('Otomatik fiyat çekme ayarı güncellenirken hata oluştu');
+    }
+  };
+
+  const handleUpdateAutoScrapingSettings = async (savedUrl: SavedUrl, interval: number, multiplier: number) => {
+    try {
+      const response = await fetch(`/api/admin/custom-scraping-urls/${savedUrl.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          auto_scraping_interval_hours: interval,
+          price_multiplier: multiplier,
+        }),
+      });
+
+      if (response.ok) {
+        alert('Otomatik fiyat çekme ayarları güncellendi!');
+        fetchSavedUrls();
+      } else {
+        alert('Otomatik fiyat çekme ayarları güncellenirken hata oluştu');
+      }
+    } catch (error) {
+      console.error('Error updating auto-scraping settings:', error);
+      alert('Otomatik fiyat çekme ayarları güncellenirken hata oluştu');
+    }
+  };
+
+  const handleRunAutoScraping = async () => {
+    setIsAutoScrapingRunning(true);
+    try {
+      const response = await fetch('/api/admin/auto-scraping', {
+        method: 'GET',
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        console.log('Auto-scraping result:', result);
+        // Sadece hata varsa alert göster
+        if (result.error_count > 0) {
+          alert(`Otomatik fiyat çekme tamamlandı!\n${result.message}`);
+        }
+        fetchSavedUrls();
+      } else {
+        alert(`Otomatik fiyat çekme hatası: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error running auto-scraping:', error);
+      alert('Otomatik fiyat çekme sırasında hata oluştu');
+    } finally {
+      setIsAutoScrapingRunning(false);
+    }
+  };
+
+  // Kullanıcı tanımlı interval ile otomatik fiyat çekme
+  const startCustomAutoScraping = () => {
+    // Mevcut interval'ı temizle
+    if (autoScrapingIntervalId) {
+      clearInterval(autoScrapingIntervalId);
+    }
+
+    // Aktif olan URL'leri bul
+    const activeUrls = savedUrls.filter(url => url.auto_scraping_enabled);
+    if (activeUrls.length === 0) {
+      alert('Otomatik fiyat çekme için aktif URL bulunamadı!');
+      return;
+    }
+
+    // Interval'ı saniye cinsinden hesapla
+    let intervalInSeconds = customInterval;
+    if (intervalUnit === 'minutes') {
+      intervalInSeconds = customInterval * 60;
+    } else if (intervalUnit === 'hours') {
+      intervalInSeconds = customInterval * 3600;
+    }
+    
+    const intervalMs = intervalInSeconds * 1000; // Saniye'yi milisaniye'ye çevir
+
+    console.log(`Starting custom auto-scraping interval: ${intervalMs}ms (${intervalInSeconds}s)`);
+
+    const intervalId = setInterval(async () => {
+      console.log('Running scheduled auto-scraping...');
+      await handleRunAutoScraping();
+    }, intervalMs);
+
+    setAutoScrapingIntervalId(intervalId);
+    setIsAutoScrapingActive(true);
+  };
+
+  const stopCustomAutoScraping = () => {
+    if (autoScrapingIntervalId) {
+      clearInterval(autoScrapingIntervalId);
+      setAutoScrapingIntervalId(null);
+      setIsAutoScrapingActive(false);
+      console.log('Custom auto-scraping interval stopped');
+    }
+  };
+
+  const handleRunManualScraping = async (savedUrl: SavedUrl) => {
+    try {
+      const response = await fetch('/api/admin/auto-scraping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url_ids: [savedUrl.id],
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert(`Manuel fiyat çekme tamamlandı!\n${result.message}`);
+        fetchSavedUrls();
+      } else {
+        alert(`Manuel fiyat çekme hatası: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error running manual scraping:', error);
+      alert('Manuel fiyat çekme sırasında hata oluştu');
+    }
   };
 
   // Test geçmişi kaldırıldı
@@ -398,6 +582,50 @@ export default function URLTesterPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Auto-scraping Settings */}
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Otomatik Fiyat Çekme Ayarları</h3>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="autoScrapingEnabled"
+                      checked={autoScrapingEnabled}
+                      onChange={(e) => setAutoScrapingEnabled(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="autoScrapingEnabled" className="ml-2 block text-sm text-gray-900">
+                      Otomatik fiyat çekmeyi etkinleştir
+                    </label>
+                  </div>
+
+                  {autoScrapingEnabled && (
+                    <>
+
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Fiyat Çarpanı
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={priceMultiplier}
+                          onChange={(e) => setPriceMultiplier(parseFloat(e.target.value) || 1)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          placeholder="1.00"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Çekilen fiyat bu çarpan ile çarpılarak malzeme fiyatı belirlenir
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="flex space-x-3">
@@ -544,86 +772,287 @@ export default function URLTesterPage() {
         </div>
 
         {/* Saved URLs */}
-        <div className="mt-6 bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Kaydedilmiş URL&apos;ler</h2>
+        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <DocumentTextIcon className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Kaydedilmiş URL'ler</h2>
+                  <p className="text-sm text-gray-600">Otomatik fiyat çekme ayarları ile yönetin</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-4">
+                  {/* Manuel Çek Butonu */}
+                  <button
+                    onClick={handleRunAutoScraping}
+                    disabled={isAutoScrapingRunning}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center text-sm font-medium transition-colors duration-200"
+                  >
+                    {isAutoScrapingRunning ? (
+                      <>
+                        <ClockIcon className="h-4 w-4 mr-2 animate-spin" />
+                        Çekiliyor...
+                      </>
+                    ) : (
+                      <>
+                        <ArrowPathIcon className="h-4 w-4 mr-2" />
+                        Şimdi Çek
+                      </>
+                    )}
+                  </button>
+
+                  {/* Aralık Kontrolü */}
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm text-gray-600">Aralık:</label>
+                    <input
+                      type="number"
+                      value={customInterval}
+                      onChange={(e) => setCustomInterval(parseInt(e.target.value) || 5)}
+                      min="1"
+                      max={intervalUnit === 'seconds' ? 3600 : intervalUnit === 'minutes' ? 60 : 24}
+                      className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900"
+                      disabled={isAutoScrapingActive}
+                      placeholder="5"
+                    />
+                    <select
+                      value={intervalUnit}
+                      onChange={(e) => setIntervalUnit(e.target.value as 'seconds' | 'minutes' | 'hours')}
+                      className="px-2 py-1 border border-gray-300 rounded text-sm text-gray-900"
+                      disabled={isAutoScrapingActive}
+                    >
+                      <option value="seconds">saniye</option>
+                      <option value="minutes">dakika</option>
+                      <option value="hours">saat</option>
+                    </select>
+                  </div>
+
+                  {/* Başlat/Durdur Butonu */}
+                  {!isAutoScrapingActive ? (
+                    <button
+                      onClick={startCustomAutoScraping}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm font-medium transition-colors duration-200"
+                    >
+                      <PlayIcon className="h-4 w-4 mr-2" />
+                      Başlat
+                    </button>
+                  ) : (
+                    <button
+                      onClick={stopCustomAutoScraping}
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center text-sm font-medium transition-colors duration-200"
+                    >
+                      <PauseIcon className="h-4 w-4 mr-2" />
+                      Durdur
+                    </button>
+                  )}
+
+                  {/* Durum Göstergesi */}
+                  {isAutoScrapingActive && (
+                    <div className="flex items-center space-x-2 text-sm text-green-600">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span>Her {customInterval} {intervalUnit === 'seconds' ? 's' : intervalUnit === 'minutes' ? 'dk' : 'sa'} çalışıyor</span>
+                    </div>
+                  )}
+                </div>
             <button
               onClick={() => setShowSavedUrls(!showSavedUrls)}
-              className="text-blue-600 hover:text-blue-800 text-sm"
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors duration-200"
             >
               {showSavedUrls ? 'Gizle' : 'Göster'}
             </button>
+              </div>
+            </div>
           </div>
 
           {showSavedUrls && (
-            <div className="space-y-4">
+            <div className="p-6">
               {savedUrls.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
                   {savedUrls.map((savedUrl) => (
-                    <div key={savedUrl.id} className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-base text-gray-900 truncate">
+                    <div key={savedUrl.id} className="group relative bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-blue-300 overflow-hidden min-h-[400px]">
+                      {/* Header with gradient background */}
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5 border-b border-gray-100">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0 pr-4">
+                            <div className="flex items-center space-x-3 mb-3">
+                              <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></div>
+                              <h3 className="font-bold text-lg text-gray-900 truncate">
                             {MATERIAL_NAMES[savedUrl.material_type]}
                           </h3>
-                          <p className="text-sm text-gray-600 truncate mt-1" title={savedUrl.url}>
-                            {savedUrl.url}
-                          </p>
                         </div>
-                        <div className="flex space-x-2 ml-2 flex-shrink-0">
+                            <div className="flex items-center space-x-2 text-sm text-gray-600">
+                              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0"></div>
+                              <span className="truncate" title={savedUrl.url}>
+                                {new URL(savedUrl.url).hostname}
+                              </span>
+                            </div>
+                        </div>
+                          <div className="flex space-x-1 flex-shrink-0">
                           <button
                             onClick={() => handleLoadSavedUrl(savedUrl)}
-                            className="text-blue-600 hover:text-blue-800 p-1"
-                            title="Yükle"
+                              className="p-2.5 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition-colors duration-200"
+                              title="Düzenle"
                           >
                             <PencilIcon className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteUrl(savedUrl.id)}
-                            className="text-red-600 hover:text-red-800 p-1"
+                              className="p-2.5 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-colors duration-200"
                             title="Sil"
                           >
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         </div>
+                        </div>
                       </div>
                       
-                      <div className="mt-3">
+                      {/* Content */}
+                      <div className="p-6 space-y-6">
+                      
+                        {/* Test Status */}
+                        <div>
                         {savedUrl.test_result && savedUrl.test_result.success ? (
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <CheckIcon className="h-4 w-4 text-green-600 flex-shrink-0" />
-                              <span className="text-sm font-medium text-green-600">
-                                Başarılı
-                              </span>
-                              <span className="text-sm font-semibold text-gray-900">
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-5">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <CheckIcon className="h-6 w-6 text-green-600" />
+                                  </div>
+                                  <div>
+                                    <div className="font-semibold text-green-800 text-base">Test Başarılı</div>
+                                    <div className="text-3xl font-bold text-green-900">
                                 ₺{savedUrl.test_result.price}
-                              </span>
+                                    </div>
+                                  </div>
+                                </div>
                             </div>
                             <button
                               onClick={() => handleSetAsDefaultPrice(savedUrl)}
-                              className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-200 flex items-center flex-shrink-0"
+                                className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center text-sm font-medium"
                             >
-                              <StarIcon className="h-3 w-3 mr-1" />
-                              Varsayılan
+                                <StarIcon className="h-4 w-4 mr-2" />
+                                Varsayılan Fiyat Olarak Ayarla
                             </button>
                           </div>
                         ) : (
-                          <div className="flex items-center space-x-2">
-                            <XMarkIcon className="h-4 w-4 text-red-600 flex-shrink-0" />
-                            <span className="text-sm font-medium text-red-600">
-                              Başarısız
-                            </span>
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <XMarkIcon className="h-6 w-6 text-red-600" />
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-red-800 text-base">Test Başarısız</div>
+                                  <div className="text-sm text-red-600">Fiyat çekilemedi</div>
+                                </div>
+                              </div>
                           </div>
                         )}
+                        </div>
+
+                        {/* Auto-scraping Section */}
+                        <div className="bg-gray-50 rounded-xl p-5">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-3 h-3 bg-purple-500 rounded-full flex-shrink-0"></div>
+                              <span className="font-semibold text-gray-800 text-base">Otomatik Fiyat Çekme</span>
+                            </div>
+                            <button
+                              onClick={() => handleToggleAutoScraping(savedUrl)}
+                              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center ${
+                                savedUrl.auto_scraping_enabled 
+                                  ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300' 
+                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300'
+                              }`}
+                            >
+                              {savedUrl.auto_scraping_enabled ? (
+                                <>
+                                  <PlayIcon className="h-4 w-4 mr-2" />
+                                  Aktif
+                                </>
+                              ) : (
+                                <>
+                                  <PauseIcon className="h-4 w-4 mr-2" />
+                                  Pasif
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {savedUrl.auto_scraping_enabled && (
+                            <div className="mb-4">
+                              <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
+                                <div className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Fiyat Çarpanı</div>
+                                <div className="font-bold text-2xl text-gray-900">
+                                  {savedUrl.price_multiplier || 1}x
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {savedUrl.auto_scraping_enabled && (savedUrl.last_auto_scraped_at || savedUrl.next_auto_scrape_at) && (
+                            <div className="space-y-3 mb-4">
+                              {savedUrl.last_auto_scraped_at && (
+                                <div className="flex items-center space-x-3 text-sm text-gray-600 bg-white rounded-lg p-3 border border-gray-200">
+                                  <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                  <span>Son çekim: {new Date(savedUrl.last_auto_scraped_at).toLocaleString('tr-TR')}</span>
+                                </div>
+                              )}
+                              {savedUrl.next_auto_scrape_at && (
+                                <div className="flex items-center space-x-3 text-sm text-gray-600 bg-white rounded-lg p-3 border border-gray-200">
+                                  <ArrowPathIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                  <span>Sonraki çekim: {new Date(savedUrl.next_auto_scrape_at).toLocaleString('tr-TR')}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex space-x-3">
+                            <button
+                              onClick={() => handleRunManualScraping(savedUrl)}
+                              className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center text-sm font-medium"
+                            >
+                              <ArrowPathIcon className="h-4 w-4 mr-2" />
+                              Şimdi Çek
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newMultiplier = prompt('Yeni fiyat çarpanı:', String(savedUrl.price_multiplier || 1));
+                                if (newMultiplier) {
+                                  handleUpdateAutoScrapingSettings(
+                                    savedUrl, 
+                                    savedUrl.auto_scraping_interval_hours || 24, 
+                                    parseFloat(newMultiplier)
+                                  );
+                                }
+                              }}
+                              className="bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center text-sm font-medium"
+                            >
+                              <Cog6ToothIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>Henüz kaydedilmiş URL yok</p>
-                  <p className="text-sm">Test yapıp URL&apos;leri kaydedin</p>
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <DocumentTextIcon className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Henüz kaydedilmiş URL yok</h3>
+                  <p className="text-gray-500 mb-4">Test yapıp URL'leri kaydederek otomatik fiyat çekme özelliğini kullanmaya başlayın</p>
+                  <div className="flex items-center justify-center space-x-2 text-sm text-gray-400">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span>URL Test Et</span>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <span>Kaydet</span>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <span>Otomatik Çek</span>
+                  </div>
                 </div>
               )}
             </div>

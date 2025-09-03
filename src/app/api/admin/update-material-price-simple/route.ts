@@ -39,7 +39,6 @@ export async function POST(request: NextRequest) {
         .from('material_prices')
         .update({
           unit_price: price,
-          updated_at: new Date().toISOString(),
         })
         .eq('material_type', material_type)
         .select('*');
@@ -66,10 +65,9 @@ export async function POST(request: NextRequest) {
       const { data, error } = await supabase
         .from('material_prices')
         .insert({
-          material_type,
+          material_type: material_type,
           unit_price: price,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          source: 'manual',
         })
         .select('*');
 

@@ -28,6 +28,12 @@ export interface CustomScrapingUrl {
     price?: number;
     error?: string;
   };
+  // Auto-scraping fields
+  auto_scraping_enabled?: boolean;
+  auto_scraping_interval_hours?: number;
+  price_multiplier?: number;
+  last_auto_scraped_at?: string;
+  next_auto_scrape_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -76,6 +82,10 @@ export interface CreateCustomScrapingUrlRequest {
   };
   last_tested_at?: string;
   is_active?: boolean;
+  // Auto-scraping fields
+  auto_scraping_enabled?: boolean;
+  auto_scraping_interval_hours?: number;
+  price_multiplier?: number;
 }
 
 export interface UpdateCustomScrapingUrlRequest extends Partial<CreateCustomScrapingUrlRequest> {
