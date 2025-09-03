@@ -121,6 +121,15 @@ export class CalculationEngine {
         }
       }
       
+      // Duvar C profili katsayısını duvar türüne göre ayarla
+      if (materialType === 'duvar_c_profili' && isTuru === 'duvar') {
+        if (altTuru === 'tek_kat_tek_iskelet' || altTuru === 'giydirme_duvar') {
+          coefficient = 0.58; // Tek kat tek iskelet ve giydirme duvar için 0.58
+        } else if (altTuru === 'cift_kat_cift_iskelet') {
+          coefficient = 1.16; // Çift kat çift iskelet için 1.16
+        }
+      }
+      
       const quantity = area * coefficient;
       
       // Önce customPrices'tan, sonra genel unitPrice'tan, son olarak güncel fiyattan al
@@ -180,6 +189,15 @@ export class CalculationEngine {
             coefficient = 12; // Düz tavan için 12
           } else if (subType === 'karopan_tavan' || subType === 'klipin_tavan') {
             coefficient = 4; // Karopan ve klipin tavan için 4
+          }
+        }
+        
+        // Duvar C profili katsayısını duvar türüne göre ayarla
+        if (materialType === 'duvar_c_profili' && jobType === 'duvar') {
+          if (subType === 'tek_kat_tek_iskelet' || subType === 'giydirme_duvar') {
+            coefficient = 0.58; // Tek kat tek iskelet ve giydirme duvar için 0.58
+          } else if (subType === 'cift_kat_cift_iskelet') {
+            coefficient = 1.16; // Çift kat çift iskelet için 1.16
           }
         }
         
