@@ -22,16 +22,23 @@ function HomeContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    // Giriş başarı mesajını 3 saniye sonra kaldır
-    if (user) {
+    // Sadece URL'de 'login=success' parametresi varsa giriş başarı mesajını göster
+    const loginSuccess = searchParams.get('login');
+    if (user && loginSuccess === 'success') {
       setShowSuccessMessage(true);
+      
+      // URL'den parametreyi temizle
+      const url = new URL(window.location.href);
+      url.searchParams.delete('login');
+      window.history.replaceState({}, '', url.toString());
+      
       const timer = setTimeout(() => {
         setShowSuccessMessage(false);
       }, 3000);
       
       return () => clearTimeout(timer);
     }
-  }, [user]);
+  }, [user, searchParams]);
 
   if (loading) {
     return (

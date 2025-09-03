@@ -20,7 +20,7 @@ export default function AuthCallbackPage() {
 
         if (data.session) {
           // Başarılı giriş - ana sayfaya yönlendir
-          router.push('/');
+          router.push('/?login=success');
         } else {
           // Session yok - login sayfasına yönlendir
           router.push('/login');
