@@ -17,10 +17,10 @@ import {
 const MATERIAL_TYPES = [
   // Tavan Malzemeleri (hesaplayıcıdaki type'larla eşleşen)
   'beyaz_alcipan', 'c_profili', 'u_profili', 'aski_teli', 'aski_masasi', 'klips', 'vida',
-  't_ana_tasiyici', 'tali_120_tasiyici', 'tali_60_tasiyici', 'plaka', 'omega',
+  't_ana_tasiyici', 'tali_120_tasiyici', 'tali_60_tasiyici', 'plaka', 'omega', 'celik_dubel', 'clip_in_aski_masasi', 'alüminyum_plaka',
   
   // Duvar Malzemeleri
-  'alcipan', 'agraf', 'dubel_civi', 'vida_25', 'vida_35'
+  'duvar_u_profili', 'duvar_c_profili', 'agraf', 'dubel_civi', 'duvar_dubel', 'vida_25', 'vida_35'
 ];
 
 const MATERIAL_NAMES: Record<string, string> = {
@@ -37,11 +37,16 @@ const MATERIAL_NAMES: Record<string, string> = {
   'tali_60_tasiyici': 'Tali 60 Taşıyıcı',
   'plaka': 'Plaka',
   'omega': 'Omega',
+  'celik_dubel': 'Çelik Dubel',
+  'clip_in_aski_masasi': 'Clip In Askı Maşası',
+  'alüminyum_plaka': 'Alüminyum Plaka',
   
   // Duvar Malzemeleri
-  'alcipan': 'Alçıpan',
+  'duvar_u_profili': 'Duvar U Profili',
+  'duvar_c_profili': 'Duvar C Profili',
   'agraf': 'Agraf',
   'dubel_civi': 'Dubel Çivi',
+  'duvar_dubel': 'Duvar Dubel',
   'vida_25': 'Vida 25mm',
   'vida_35': 'Vida 35mm'
 };

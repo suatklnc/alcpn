@@ -10,7 +10,6 @@ import { useAuth } from '@/lib/auth-context';
 
 interface CalculationFormProps {
   onCalculate: (results: CalculationResult[]) => void;
-  refreshKey?: number;
 }
 
 type FormData = {
@@ -19,7 +18,7 @@ type FormData = {
   altTuru: 'duz_tavan' | 'karopan_tavan' | 'klipin_tavan' | 'giydirme_duvar' | 'tek_kat_tek_iskelet' | 'cift_kat_cift_iskelet';
 };
 
-export default function CalculationForm({ onCalculate, refreshKey }: CalculationFormProps) {
+export default function CalculationForm({ onCalculate }: CalculationFormProps) {
   const [isCalculating, setIsCalculating] = useState(false);
 
   const { user } = useAuth();

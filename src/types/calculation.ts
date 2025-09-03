@@ -28,10 +28,15 @@ export type MaterialType =
   | 'tali_60_tasiyici'
   | 'plaka'
   | 'omega'
+  | 'celik_dubel'
+  | 'clip_in_aski_masasi'
+  | 'alüminyum_plaka'
   // Duvar malzemeleri
-  | 'alcipan'
+  | 'duvar_u_profili'
+  | 'duvar_c_profili'
   | 'agraf'
   | 'dubel_civi'
+  | 'duvar_dubel'
   | 'vida_25'
   | 'vida_35';
 
@@ -164,15 +169,31 @@ export const MATERIAL_COEFFICIENTS: Record<MaterialType, MaterialInfo> = {
     description: 'Omega profil',
     defaultUnitPrice: 10,
   },
-  // Duvar malzemeleri
-  alcipan: {
-    type: 'alcipan',
-    name: 'Alçıpan',
+  celik_dubel: {
+    type: 'celik_dubel',
+    name: 'Çelik Dubel',
     unit: 'adet',
-    coefficient: 0.36, // 0.36 × m² (giydirme duvar)
-    description: 'Alçıpan levha',
-    defaultUnitPrice: 45,
+    coefficient: 0.73, // 0.73 × m²
+    description: 'Çelik dubel',
+    defaultUnitPrice: 1.5,
   },
+  clip_in_aski_masasi: {
+    type: 'clip_in_aski_masasi',
+    name: 'Clip In Askı Maşası',
+    unit: 'adet',
+    coefficient: 0.73, // 0.73 × m²
+    description: 'Clip in askı maşası',
+    defaultUnitPrice: 2.0,
+  },
+  alüminyum_plaka: {
+    type: 'alüminyum_plaka',
+    name: 'Alüminyum Plaka',
+    unit: 'adet',
+    coefficient: 3, // 3 × m²
+    description: 'Alüminyum plaka',
+    defaultUnitPrice: 30,
+  },
+  // Duvar malzemeleri
   agraf: {
     type: 'agraf',
     name: 'Agraf',
@@ -204,6 +225,30 @@ export const MATERIAL_COEFFICIENTS: Record<MaterialType, MaterialInfo> = {
     coefficient: 44, // 44 × m²
     description: '35mm vida',
     defaultUnitPrice: 0.3,
+  },
+  duvar_u_profili: {
+    type: 'duvar_u_profili',
+    name: 'Duvar U Profili',
+    unit: 'adet',
+    coefficient: 0.3, // 0.3 × m² (duvar için)
+    description: 'Duvar U profili metal',
+    defaultUnitPrice: 11.0,
+  },
+  duvar_c_profili: {
+    type: 'duvar_c_profili',
+    name: 'Duvar C Profili',
+    unit: 'adet',
+    coefficient: 0.3, // 0.3 × m² (duvar için)
+    description: 'Duvar C profili metal',
+    defaultUnitPrice: 103.75,
+  },
+  duvar_dubel: {
+    type: 'duvar_dubel',
+    name: 'Duvar Dubel',
+    unit: 'adet',
+    coefficient: 1.74, // 1.74 × m² (duvar için)
+    description: 'Duvar dubel',
+    defaultUnitPrice: 0.4,
   },
 };
 

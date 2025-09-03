@@ -22,6 +22,22 @@ export class CalculationEngine {
   static async getUnitPrice(materialType: MaterialType): Promise<number> {
     try {
       const prices = await this.getMaterialPrices();
+      
+      // Duvar U profili için özel fiyat kontrolü
+      if (materialType === 'duvar_u_profili') {
+        return prices['duvar_u_profili'] || 0;
+      }
+      
+      // Duvar C profili için özel fiyat kontrolü
+      if (materialType === 'duvar_c_profili') {
+        return prices['duvar_c_profili'] || 0;
+      }
+      
+      // Duvar dubel için özel fiyat kontrolü
+      if (materialType === 'duvar_dubel') {
+        return prices['duvar_dubel'] || 0;
+      }
+      
       // Sadece Supabase'den gelen fiyatları kullan, hardcoded değerleri kullanma
       return prices[materialType] || 0;
     } catch (error) {

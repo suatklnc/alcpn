@@ -29,6 +29,7 @@ function getTavanMalzemeleri(tavanTuru: TavanTuru): MaterialType[] {
         'aski_masasi',
         'klips',
         'vida',
+        'celik_dubel',
       ];
     case 'karopan_tavan':
       return [
@@ -39,14 +40,17 @@ function getTavanMalzemeleri(tavanTuru: TavanTuru): MaterialType[] {
         'u_profili',
         'aski_teli',
         'vida',
+        'celik_dubel',
       ];
     case 'klipin_tavan':
       return [
-        'plaka',
+        'alüminyum_plaka',
         'omega',
         'u_profili',
         'aski_teli',
         'vida',
+        'celik_dubel',
+        'clip_in_aski_masasi',
       ];
     default:
       return [];
@@ -58,29 +62,27 @@ function getDuvarMalzemeleri(duvarTuru: DuvarTuru): MaterialType[] {
   switch (duvarTuru) {
     case 'giydirme_duvar':
       return [
-        'alcipan',
-        'c_profili',
-        'u_profili',
+        'beyaz_alcipan',
+        'duvar_c_profili',
+        'duvar_u_profili',
         'agraf',
-        'dubel_civi',
+        'duvar_dubel',
         'vida_25',
       ];
     case 'tek_kat_tek_iskelet':
       return [
-        'alcipan',
-        'c_profili',
-        'u_profili',
-        'agraf',
-        'dubel_civi',
+        'beyaz_alcipan',
+        'duvar_c_profili',
+        'duvar_u_profili',
+        'duvar_dubel',
         'vida_25',
       ];
     case 'cift_kat_cift_iskelet':
       return [
-        'alcipan',
-        'c_profili',
-        'u_profili',
-        'agraf',
-        'dubel_civi',
+        'beyaz_alcipan',
+        'duvar_c_profili',
+        'duvar_u_profili',
+        'duvar_dubel',
         'vida_25',
         'vida_35',
       ];
@@ -105,14 +107,19 @@ export function getAvailableMaterials(isTuru: IsTuru): MaterialType[] {
       'tali_60_tasiyici',
       'plaka',
       'omega',
+      'celik_dubel',
+      'clip_in_aski_masasi',
+      'alüminyum_plaka',
     ];
   } else {
     return [
-      'alcipan',
+      'beyaz_alcipan',
       'c_profili',
-      'u_profili',
+      'duvar_c_profili',
+      'duvar_u_profili',
       'agraf',
       'dubel_civi',
+      'duvar_dubel',
       'vida_25',
       'vida_35',
     ];
