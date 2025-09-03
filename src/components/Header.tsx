@@ -64,12 +64,6 @@ export default function Header() {
                     <span className="font-medium">{user.email}</span>
                   </span>
                 </div>
-                <button
-                  onClick={() => signOut()}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  Çıkış Yap
-                </button>
               </div>
             ) : (
               <div className="flex items-center space-x-2">
@@ -89,18 +83,8 @@ export default function Header() {
             )}
           </div>
 
-          {/* Mobile menu button and user actions */}
-          <div className="md:hidden flex items-center space-x-2">
-            {/* Mobile User Actions */}
-            {!loading && user && (
-              <button
-                onClick={() => signOut()}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
-              >
-                Çıkış
-              </button>
-            )}
-            
+          {/* Mobile menu button */}
+          <div className="md:hidden flex items-center">
             {/* Mobile menu button */}
             <button
               type="button"
@@ -186,9 +170,18 @@ export default function Header() {
               {!loading && user && (
                 <div className="border-t border-gray-200 pt-3 mt-3">
                   <div className="px-3 py-2">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 mb-3">
                       Hoş geldin, <span className="font-medium text-gray-900">{user.email}</span>
                     </p>
+                    <button
+                      onClick={() => {
+                        signOut();
+                        closeMobileMenu();
+                      }}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                    >
+                      Çıkış Yap
+                    </button>
                   </div>
                 </div>
               )}

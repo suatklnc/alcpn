@@ -85,16 +85,16 @@ export default function ResultsPanel({
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+      <div className="px-4 sm:px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h3 className="text-lg font-medium text-gray-900">
             Hesaplama Sonuçları
           </h3>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
             {onSave && (
               <button
                 onClick={() => setShowSaveDialog(true)}
-                className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
@@ -104,7 +104,7 @@ export default function ResultsPanel({
             )}
             <button
               onClick={handleExport}
-              className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -114,7 +114,7 @@ export default function ResultsPanel({
             {onClear && (
               <button
                 onClick={onClear}
-                className="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                className="inline-flex items-center justify-center px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
                 <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -128,7 +128,8 @@ export default function ResultsPanel({
 
       {/* Sonuçlar Tablosu */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        {/* Desktop Table */}
+        <table className="hidden sm:table min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -172,11 +173,35 @@ export default function ResultsPanel({
             ))}
           </tbody>
         </table>
+
+        {/* Mobile Cards */}
+        <div className="sm:hidden">
+          {results.map((result, index) => (
+            <div key={index} className="px-4 py-4 border-b border-gray-200 last:border-b-0">
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="text-sm font-medium text-gray-900">
+                  {result.materialName}
+                </h4>
+                <span className="text-sm font-medium text-gray-900">
+                  {formatCurrency(result.totalPrice)}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                <div>
+                  <span className="font-medium">Miktar:</span> {formatNumber(result.quantity)} {result.unit}
+                </div>
+                <div>
+                  <span className="font-medium">Birim Fiyat:</span> {formatCurrency(result.unitPrice)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Toplam */}
-      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-        <div className="flex justify-between items-center">
+      <div className="px-4 sm:px-6 py-4 bg-gray-50 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div className="text-sm text-gray-500">
             {results.length} malzeme türü
           </div>
