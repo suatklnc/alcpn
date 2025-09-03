@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CalendarIcon, CalculatorIcon, CurrencyDollarIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '@/lib/auth-context';
+import Layout from '@/components/Layout';
 
 interface CalculationHistory {
   id: string;
@@ -118,66 +119,73 @@ export default function MyCalculationsPage() {
   // Kullanıcı giriş yapmamışsa
   if (!authLoading && !user) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 max-w-md mx-auto">
-              <CalculatorIcon className="mx-auto h-12 w-12 text-blue-400 mb-4" />
-              <h3 className="text-lg font-medium text-blue-900 mb-2">
-                Giriş Yapmanız Gerekiyor
-              </h3>
-              <p className="text-sm text-blue-700 mb-4">
-                Hesaplama geçmişinizi görüntülemek için lütfen giriş yapın.
-              </p>
-              <Link
-                href="/login"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Giriş Yap
-              </Link>
+      <Layout>
+        <div className="min-h-screen bg-gray-50 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 max-w-md mx-auto">
+                <CalculatorIcon className="mx-auto h-12 w-12 text-blue-400 mb-4" />
+                <h3 className="text-lg font-medium text-blue-900 mb-2">
+                  Giriş Yapmanız Gerekiyor
+                </h3>
+                <p className="text-sm text-blue-700 mb-4">
+                  Hesaplama geçmişinizi görüntülemek için lütfen giriş yapın.
+                </p>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Giriş Yap
+                </Link>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Hesaplama geçmişi yükleniyor...</p>
+      <Layout>
+        <div className="min-h-screen bg-gray-50 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Hesaplama geçmişi yükleniyor...</p>
+            </div>
           </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="bg-red-50 border border-red-200 rounded-md p-4">
-              <p className="text-red-800">Hata: {error}</p>
-              <button
-                onClick={fetchCalculations}
-                className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Tekrar Dene
-              </button>
+      <Layout>
+        <div className="min-h-screen bg-gray-50 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                <p className="text-red-800">Hata: {error}</p>
+                <button
+                  onClick={fetchCalculations}
+                  className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                  Tekrar Dene
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <Layout>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Hesaplama Geçmişim</h1>
@@ -289,7 +297,8 @@ export default function MyCalculationsPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 }
