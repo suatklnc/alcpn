@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useAuth } from '@/lib/auth-context';
@@ -135,13 +135,6 @@ export default function URLTesterPage() {
       fetchSavedUrls();
     }
   }, [isChecking, user]);
-
-  // Component unmount olduğunda interval'ı temizle
-  useEffect(() => {
-    return () => {
-      stopCustomAutoScraping();
-    };
-  }, []);
 
   const fetchSavedUrls = async () => {
     try {
@@ -464,14 +457,21 @@ export default function URLTesterPage() {
     setIsAutoScrapingActive(true);
   };
 
-  const stopCustomAutoScraping = () => {
+  const stopCustomAutoScraping = useCallback(() => {
     if (autoScrapingIntervalId) {
       clearInterval(autoScrapingIntervalId);
       setAutoScrapingIntervalId(null);
       setIsAutoScrapingActive(false);
       console.log('Custom auto-scraping interval stopped');
     }
-  };
+  }, [autoScrapingIntervalId]);
+
+  // Component unmount olduğunda interval'ı temizle
+  useEffect(() => {
+    return () => {
+      stopCustomAutoScraping();
+    };
+  }, [stopCustomAutoScraping]);
 
   const handleRunManualScraping = async (savedUrl: SavedUrl) => {
     try {
@@ -780,7 +780,7 @@ export default function URLTesterPage() {
                   <DocumentTextIcon className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Kaydedilmiş URL'ler</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Kaydedilmiş URL&apos;ler</h2>
                   <p className="text-sm text-gray-600">Otomatik fiyat çekme ayarları ile yönetin</p>
                 </div>
               </div>
@@ -1044,7 +1044,7 @@ export default function URLTesterPage() {
                     <DocumentTextIcon className="h-8 w-8 text-gray-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Henüz kaydedilmiş URL yok</h3>
-                  <p className="text-gray-500 mb-4">Test yapıp URL'leri kaydederek otomatik fiyat çekme özelliğini kullanmaya başlayın</p>
+                  <p className="text-gray-500 mb-4">Test yapıp URL&apos;leri kaydederek otomatik fiyat çekme özelliğini kullanmaya başlayın</p>
                   <div className="flex items-center justify-center space-x-2 text-sm text-gray-400">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     <span>URL Test Et</span>

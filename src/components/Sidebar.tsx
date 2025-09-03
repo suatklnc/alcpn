@@ -6,7 +6,6 @@ import {
   HomeIcon,
   CalculatorIcon,
   DocumentTextIcon,
-  UserIcon,
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 

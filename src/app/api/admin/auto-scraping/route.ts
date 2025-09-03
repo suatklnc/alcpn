@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     // }
 
     // Önce tüm aktif URL'leri kontrol et
-    const { data: allActiveUrls, error: allUrlsError } = await supabase
+    const { data: allActiveUrls } = await supabase
       .from('custom_scraping_urls')
       .select('*')
       .eq('auto_scraping_enabled', true)
