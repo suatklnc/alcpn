@@ -3,15 +3,11 @@
 import { useState } from 'react';
 import Layout from '@/components/Layout';
 import CalculationForm from '@/components/CalculationForm';
-import MultiMaterialForm from '@/components/MultiMaterialForm';
 import ResultsPanel from '@/components/ResultsPanel';
 import { CalculationResult } from '@/types/calculation';
 import { useAuth } from '@/lib/auth-context';
 
-type CalculatorMode = 'single' | 'multi';
-
 export default function CalculatorPage() {
-  const [mode, setMode] = useState<CalculatorMode>('single');
   const [results, setResults] = useState<CalculationResult[]>([]);
   const { user } = useAuth();
 
@@ -50,40 +46,12 @@ export default function CalculatorPage() {
           </div>
         </div>
 
-        {/* Mode Selector */}
-        <div className="mb-4 sm:mb-6">
-          <div className="flex items-center space-x-1 bg-gray-100 p-1 rounded-lg w-full sm:w-fit">
-            <button
-              onClick={() => setMode('single')}
-              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
-                mode === 'single'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Tekli Hesaplama
-            </button>
-            <button
-              onClick={() => setMode('multi')}
-              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-colors ${
-                mode === 'multi'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Çoklu Hesaplama
-            </button>
-          </div>
-        </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           {/* Form */}
           <div>
-            {mode === 'single' ? (
-              <CalculationForm onCalculate={handleCalculate} />
-            ) : (
-              <MultiMaterialForm onCalculate={handleCalculate} />
-            )}
+            <CalculationForm onCalculate={handleCalculate} />
           </div>
 
           {/* Results */}
@@ -97,7 +65,7 @@ export default function CalculatorPage() {
         </div>
 
         {/* Info Cards */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -120,35 +88,7 @@ export default function CalculatorPage() {
                   Hızlı Hesaplama
                 </h3>
                 <p className="mt-1 text-sm text-gray-600">
-                  Tek bir malzeme türü için hızlı hesaplama yapın
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-8 w-8 text-indigo-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 10h16M4 14h16M4 18h16"
-                  />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Çoklu Hesaplama
-                </h3>
-                <p className="mt-1 text-sm text-gray-600">
-                  Birden fazla malzeme türü için toplu hesaplama
+                  Malzeme miktarlarını ve maliyetlerini kolayca hesaplayın
                 </p>
               </div>
             </div>
@@ -191,7 +131,6 @@ export default function CalculatorPage() {
           <ul className="space-y-2 text-sm text-blue-800">
             <li>• Alan değerini m² cinsinden doğru bir şekilde giriniz</li>
             <li>• Özel birim fiyat girmezseniz güncel piyasa fiyatları kullanılır</li>
-            <li>• Çoklu hesaplama modunda birden fazla malzeme seçebilirsiniz</li>
             <li>• Hesaplama sonuçlarını CSV olarak indirebilirsiniz</li>
             <li>
               • {user ? 'Hesaplamalarınızı kaydedebilir' : 'Giriş yaparak hesaplamalarınızı kaydedebilir'} ve daha sonra görüntüleyebilirsiniz
