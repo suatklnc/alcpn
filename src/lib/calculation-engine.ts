@@ -110,7 +110,18 @@ export class CalculationEngine {
     
     for (const materialType of materials) {
       const materialInfo = MATERIAL_COEFFICIENTS[materialType];
-      const quantity = area * materialInfo.coefficient;
+      
+      // Vida katsayısını tavan türüne göre ayarla
+      let coefficient = materialInfo.coefficient;
+      if (materialType === 'vida' && isTuru === 'tavan') {
+        if (altTuru === 'duz_tavan') {
+          coefficient = 12; // Düz tavan için 12
+        } else if (altTuru === 'karopan_tavan' || altTuru === 'klipin_tavan') {
+          coefficient = 4; // Karopan ve klipin tavan için 4
+        }
+      }
+      
+      const quantity = area * coefficient;
       
       // Önce customPrices'tan, sonra genel unitPrice'tan, son olarak güncel fiyattan al
       let price = customPrices?.[materialType] || unitPrice;
@@ -125,7 +136,7 @@ export class CalculationEngine {
         unit: materialInfo.unit,
         unitPrice: price,
         totalPrice: Math.ceil(quantity) * price,
-        coefficient: materialInfo.coefficient,
+        coefficient: coefficient, // Güncellenmiş katsayıyı kullan
       });
     }
     
@@ -161,7 +172,18 @@ export class CalculationEngine {
       
       for (const materialType of materials) {
         const materialInfo = MATERIAL_COEFFICIENTS[materialType];
-        const quantity = area * materialInfo.coefficient;
+        
+        // Vida katsayısını tavan türüne göre ayarla
+        let coefficient = materialInfo.coefficient;
+        if (materialType === 'vida' && jobType === 'tavan') {
+          if (subType === 'duz_tavan') {
+            coefficient = 12; // Düz tavan için 12
+          } else if (subType === 'karopan_tavan' || subType === 'klipin_tavan') {
+            coefficient = 4; // Karopan ve klipin tavan için 4
+          }
+        }
+        
+        const quantity = area * coefficient;
         
         // Önce customPrices'tan, sonra güncel fiyattan al
         let price = customPrices?.[materialType];
@@ -177,7 +199,7 @@ export class CalculationEngine {
           unit: materialInfo.unit,
           unitPrice: price,
           totalPrice: Math.ceil(quantity) * price,
-          coefficient: materialInfo.coefficient,
+          coefficient: coefficient, // Güncellenmiş katsayıyı kullan
         });
       }
 
