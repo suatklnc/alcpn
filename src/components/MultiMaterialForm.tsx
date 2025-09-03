@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { multiMaterialFormSchema } from '@/lib/validation/calculation-schema';
@@ -44,6 +44,17 @@ export default function MultiMaterialForm({ onCalculate }: MultiMaterialFormProp
 
   const watchedIsTuru = watch('isTuru');
   const watchedSelectedMaterials = watch('selectedMaterials') || [];
+
+  // isTuru değiştiğinde altTuru'yu resetle
+  useEffect(() => {
+    if (watchedIsTuru === 'tavan') {
+      setValue('altTuru', 'duz_tavan');
+    } else if (watchedIsTuru === 'duvar') {
+      setValue('altTuru', 'giydirme_duvar');
+    }
+    // Malzeme seçimlerini de temizle
+    setValue('selectedMaterials', []);
+  }, [watchedIsTuru, setValue]);
 
 
 

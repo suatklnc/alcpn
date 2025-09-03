@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { calculationFormSchema } from '@/lib/validation/calculation-schema';
@@ -27,6 +27,7 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(calculationFormSchema),
@@ -38,6 +39,15 @@ export default function CalculationForm({ onCalculate }: CalculationFormProps) {
   });
 
   const watchedIsTuru = watch('isTuru');
+
+  // isTuru değiştiğinde altTuru'yu resetle
+  useEffect(() => {
+    if (watchedIsTuru === 'tavan') {
+      setValue('altTuru', 'duz_tavan');
+    } else if (watchedIsTuru === 'duvar') {
+      setValue('altTuru', 'giydirme_duvar');
+    }
+  }, [watchedIsTuru, setValue]);
 
 
 
