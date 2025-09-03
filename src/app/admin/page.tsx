@@ -1,6 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { useAuth } from '@/lib/auth-context';
 import { 
   BeakerIcon,
   CurrencyDollarIcon,
@@ -8,6 +11,39 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function AdminDashboard() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else {
+        setIsChecking(false);
+      }
+    }
+  }, [user, loading, router]);
+
+  if (loading || isChecking) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-lg font-medium text-gray-900 mb-2">
+            Yükleniyor...
+          </h2>
+          <p className="text-sm text-gray-600">
+            Admin paneline erişim kontrol ediliyor.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Redirect will happen
+  }
   return (
     <AdminLayout>
       <div className="space-y-6">

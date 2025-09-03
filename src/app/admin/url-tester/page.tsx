@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { useAuth } from '@/lib/auth-context';
 import { 
   BeakerIcon, 
   DocumentTextIcon, 
@@ -82,6 +84,10 @@ interface SavedUrl {
 // TestHistory interface kaldırıldı - sadece SavedUrl kullanılıyor
 
 export default function URLTesterPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
+  
   const [url, setUrl] = useState('');
   const [selector, setSelector] = useState('');
   const [materialType, setMaterialType] = useState('');
@@ -93,10 +99,23 @@ export default function URLTesterPage() {
   const [showSavedUrls, setShowSavedUrls] = useState(false);
   const [, setSelectedUrl] = useState<SavedUrl | null>(null);
 
+  // Authentication check
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else {
+        setIsChecking(false);
+      }
+    }
+  }, [user, loading, router]);
+
   // Load saved URLs on component mount
   useEffect(() => {
-    fetchSavedUrls();
-  }, []);
+    if (!isChecking && user) {
+      fetchSavedUrls();
+    }
+  }, [isChecking, user]);
 
   const fetchSavedUrls = async () => {
     try {
@@ -297,6 +316,26 @@ export default function URLTesterPage() {
   };
 
   // Test geçmişi kaldırıldı
+
+  if (loading || isChecking) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-lg font-medium text-gray-900 mb-2">
+            Yükleniyor...
+          </h2>
+          <p className="text-sm text-gray-600">
+            Admin paneline erişim kontrol ediliyor.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Redirect will happen
+  }
 
   return (
     <AdminLayout>
