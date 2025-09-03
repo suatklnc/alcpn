@@ -130,6 +130,13 @@ export class CalculationEngine {
         }
       }
       
+      // Duvar dubel katsayısını duvar türüne göre ayarla
+      if (materialType === 'duvar_dubel' && isTuru === 'duvar') {
+        if (altTuru === 'cift_kat_cift_iskelet') {
+          coefficient = 3.48; // Çift kat çift iskelet için 3.48
+        }
+      }
+      
       const quantity = area * coefficient;
       
       // Önce customPrices'tan, sonra genel unitPrice'tan, son olarak güncel fiyattan al
@@ -198,6 +205,13 @@ export class CalculationEngine {
             coefficient = 0.58; // Tek kat tek iskelet ve giydirme duvar için 0.58
           } else if (subType === 'cift_kat_cift_iskelet') {
             coefficient = 1.16; // Çift kat çift iskelet için 1.16
+          }
+        }
+        
+        // Duvar dubel katsayısını duvar türüne göre ayarla
+        if (materialType === 'duvar_dubel' && jobType === 'duvar') {
+          if (subType === 'cift_kat_cift_iskelet') {
+            coefficient = 3.48; // Çift kat çift iskelet için 3.48
           }
         }
         
