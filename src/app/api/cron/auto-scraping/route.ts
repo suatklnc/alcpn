@@ -106,8 +106,8 @@ async function processScrapingInBackground() {
         
         console.log(`Scraping result for ${urlData.material_type}:`, scrapingResult);
 
-        // Scraping sonucunu veritabanına kaydet
-        const { error: historyError } = await supabase
+        // Scraping sonucunu veritabanına kaydet (service client ile)
+        const { error: historyError } = await supabaseService
           .from('scraping_history')
           .insert({
             url_id: urlData.id,
@@ -180,8 +180,8 @@ async function processScrapingInBackground() {
       } catch (error) {
         console.error(`Error scraping URL ${urlData.id}:`, error);
         
-        // Hata durumunu da kaydet
-        const { error: historyError } = await supabase
+        // Hata durumunu da kaydet (service client ile)
+        const { error: historyError } = await supabaseService
           .from('scraping_history')
           .insert({
             url_id: urlData.id,
