@@ -295,14 +295,26 @@ function parseHtml(html: string, selector: string, materialType: string) {
 function extractPriceWithCheerio($: cheerio.CheerioAPI, selector: string): number | null {
   try {
     console.log(`[EXTRACT-PRICE] Trying selector: ${selector}`);
-    const priceElement = $(selector);
-    console.log(`[EXTRACT-PRICE] Found ${priceElement.length} elements with selector: ${selector}`);
-    if (priceElement.length > 0) {
-      const priceText = priceElement.text().trim();
-      console.log(`[EXTRACT-PRICE] Price text: "${priceText}"`);
-      const price = extractPriceFromText(priceText);
-      console.log(`[EXTRACT-PRICE] Extracted price: ${price}`);
-      if (price) return price;
+    
+    // Multiple selectors support - split by comma and try each one
+    const selectors = selector.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    console.log(`[EXTRACT-PRICE] Split into ${selectors.length} selectors:`, selectors);
+    
+    for (const singleSelector of selectors) {
+      console.log(`[EXTRACT-PRICE] Trying individual selector: ${singleSelector}`);
+      const priceElement = $(singleSelector);
+      console.log(`[EXTRACT-PRICE] Found ${priceElement.length} elements with selector: ${singleSelector}`);
+      
+      if (priceElement.length > 0) {
+        const priceText = priceElement.text().trim();
+        console.log(`[EXTRACT-PRICE] Price text: "${priceText}"`);
+        const price = extractPriceFromText(priceText);
+        console.log(`[EXTRACT-PRICE] Extracted price: ${price}`);
+        if (price) {
+          console.log(`[EXTRACT-PRICE] Success with selector: ${singleSelector}`);
+          return price;
+        }
+      }
     }
 
     // If selector doesn't work, try common price selectors

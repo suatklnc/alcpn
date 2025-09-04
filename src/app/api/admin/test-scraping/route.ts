@@ -200,12 +200,16 @@ export async function POST(request: NextRequest) {
 // Helper functions for HTML parsing with Cheerio
 function extractPriceWithCheerio($: cheerio.CheerioAPI, selector: string): number | null {
   try {
-    // First try to find price using the provided selector
-    const priceElement = $(selector);
-    if (priceElement.length > 0) {
-      const priceText = priceElement.text().trim();
-      const price = extractPriceFromText(priceText);
-      if (price) return price;
+    // Multiple selectors support - split by comma and try each one
+    const selectors = selector.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    
+    for (const singleSelector of selectors) {
+      const priceElement = $(singleSelector);
+      if (priceElement.length > 0) {
+        const priceText = priceElement.text().trim();
+        const price = extractPriceFromText(priceText);
+        if (price) return price;
+      }
     }
 
     // If selector doesn't work, try common price selectors
