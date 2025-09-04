@@ -68,10 +68,10 @@ async function processSimpleScraping() {
     // Basit scraping işlemi
     const scrapingResult = await performSimpleScraping(urlData.url, urlData.selector, urlData.material_type);
     
-    console.log(`Simple scraping result for ${urlData.material_type}:`, scrapingResult);
+    // console.log(`Simple scraping result for ${urlData.material_type}:`, scrapingResult);
 
-    // Scraping sonucunu veritabanına kaydet
-    const { error: historyError } = await supabase
+    // Scraping sonucunu veritabanına kaydet (service client ile)
+    const { error: historyError } = await supabaseService
       .from('scraping_history')
       .insert({
         url_id: urlData.id,
@@ -95,7 +95,7 @@ async function processSimpleScraping() {
       const finalPrice = (typeof scrapingResult.data.price === 'number' ? 
         scrapingResult.data.price * (urlData.price_multiplier || 1) : null);
       
-      console.log(`Updating material price for ${urlData.material_type}: ${finalPrice}`);
+      // console.log(`Updating material price for ${urlData.material_type}: ${finalPrice}`);
       
       try {
         const { error: priceUpdateError } = await supabaseService
@@ -111,18 +111,18 @@ async function processSimpleScraping() {
         if (priceUpdateError) {
           console.error('Error updating material price:', priceUpdateError);
         } else {
-          console.log('Material price updated successfully');
+          // console.log('Material price updated successfully');
         }
       } catch (error) {
         console.error('Error updating material price:', error);
       }
     }
 
-    // next_auto_scrape_at'ı güncelle
+    // next_auto_scrape_at'ı güncelle (service client ile)
     const nextScrapeTime = new Date();
     nextScrapeTime.setHours(nextScrapeTime.getHours() + (urlData.auto_scraping_interval_hours || 24));
     
-    await supabase
+    await supabaseService
       .from('custom_scraping_urls')
       .update({
         last_auto_scraped_at: new Date().toISOString(),
@@ -130,7 +130,7 @@ async function processSimpleScraping() {
       })
       .eq('id', urlData.id);
 
-    console.log(`Simple scraping completed for ${urlData.material_type}`);
+    // console.log(`Simple scraping completed for ${urlData.material_type}`);
 
   } catch (error) {
     console.error('Simple background scraping error:', error);
@@ -140,7 +140,7 @@ async function processSimpleScraping() {
 // Basit scraping fonksiyonu - timeout ile
 async function performSimpleScraping(url: string, selector: string, materialType: string) {
   try {
-    console.log(`[SIMPLE-SCRAPING] Starting for ${materialType} from ${url}`);
+    // console.log(`[SIMPLE-SCRAPING] Starting for ${materialType} from ${url}`);
     
     // 5 saniye timeout
     const controller = new AbortController();
@@ -206,7 +206,7 @@ function parseSimpleHtml(html: string, selector: string, materialType: string) {
             const price = parseFloat(priceStr);
             
             if (price > 0.01 && price < 100000) {
-              console.log(`[SIMPLE-PARSE] Found price: ${price} for ${materialType}`);
+              // console.log(`[SIMPLE-PARSE] Found price: ${price} for ${materialType}`);
               return {
                 success: true,
                 data: { price },
