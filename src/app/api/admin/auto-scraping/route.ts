@@ -362,7 +362,7 @@ export async function GET(request: NextRequest) {
           .insert({
             url_id: urlData.id,
             price: scrapingResult.success && scrapingResult.data?.price ? 
-              scrapingResult.data.price * (urlData.price_multiplier || 1) : null,
+              (typeof scrapingResult.data.price === 'number' ? scrapingResult.data.price * (urlData.price_multiplier || 1) : null) : null,
             title: scrapingResult.data?.title || null,
             availability: scrapingResult.data?.availability || null,
             image_url: scrapingResult.data?.image || null,
@@ -378,7 +378,7 @@ export async function GET(request: NextRequest) {
 
         // Başarılı ise malzeme fiyatını güncelle
         if (scrapingResult.success && scrapingResult.data?.price) {
-          const finalPrice = scrapingResult.data.price * (urlData.price_multiplier || 1);
+          const finalPrice = (typeof scrapingResult.data.price === 'number' ? scrapingResult.data.price * (urlData.price_multiplier || 1) : null);
           
           console.log(`Updating material price for ${urlData.material_type}: ${finalPrice}`);
           
@@ -415,7 +415,7 @@ export async function GET(request: NextRequest) {
           url: urlData.url,
           success: scrapingResult.success,
           price: scrapingResult.success && scrapingResult.data?.price ? 
-            scrapingResult.data.price * (urlData.price_multiplier || 1) : null,
+            (typeof scrapingResult.data.price === 'number' ? scrapingResult.data.price * (urlData.price_multiplier || 1) : null) : null,
           error: scrapingResult.error,
           response_time_ms: responseTime,
         });
@@ -539,7 +539,7 @@ export async function POST(request: NextRequest) {
           .insert({
             url_id: urlData.id,
             price: scrapingResult.success && scrapingResult.data?.price ? 
-              scrapingResult.data.price * (urlData.price_multiplier || 1) : null,
+              (typeof scrapingResult.data.price === 'number' ? scrapingResult.data.price * (urlData.price_multiplier || 1) : null) : null,
             title: scrapingResult.data?.title || null,
             availability: scrapingResult.data?.availability || null,
             image_url: scrapingResult.data?.image || null,
@@ -555,7 +555,7 @@ export async function POST(request: NextRequest) {
 
         // Başarılı ise malzeme fiyatını güncelle
         if (scrapingResult.success && scrapingResult.data?.price) {
-          const finalPrice = scrapingResult.data.price * (urlData.price_multiplier || 1);
+          const finalPrice = (typeof scrapingResult.data.price === 'number' ? scrapingResult.data.price * (urlData.price_multiplier || 1) : null);
           
           console.log(`Updating material price for ${urlData.material_type}: ${finalPrice}`);
           
@@ -592,7 +592,7 @@ export async function POST(request: NextRequest) {
           url: urlData.url,
           success: scrapingResult.success,
           price: scrapingResult.success && scrapingResult.data?.price ? 
-            scrapingResult.data.price * (urlData.price_multiplier || 1) : null,
+            (typeof scrapingResult.data.price === 'number' ? scrapingResult.data.price * (urlData.price_multiplier || 1) : null) : null,
           error: scrapingResult.error,
           response_time_ms: responseTime,
         });
