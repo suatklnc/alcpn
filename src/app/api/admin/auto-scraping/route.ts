@@ -351,19 +351,7 @@ export async function GET(request: NextRequest) {
         const startTime = Date.now();
         
         // Scraping işlemini gerçekleştir
-        const scrapingResponse = await fetch(`${request.nextUrl.origin}/api/admin/test-scraping`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            url: urlData.url,
-            selector: urlData.selector,
-            material_type: urlData.material_type,
-          }),
-        });
-
-        const scrapingResult = await scrapingResponse.json();
+        const scrapingResult = await performScraping(urlData.url, urlData.selector, urlData.material_type);
         const responseTime = Date.now() - startTime;
         
         console.log(`Scraping result for ${urlData.material_type}:`, scrapingResult);
@@ -540,19 +528,7 @@ export async function POST(request: NextRequest) {
         const startTime = Date.now();
         
         // Scraping işlemini gerçekleştir
-        const scrapingResponse = await fetch(`${request.nextUrl.origin}/api/admin/test-scraping`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            url: urlData.url,
-            selector: urlData.selector,
-            material_type: urlData.material_type,
-          }),
-        });
-
-        const scrapingResult = await scrapingResponse.json();
+        const scrapingResult = await performScraping(urlData.url, urlData.selector, urlData.material_type);
         const responseTime = Date.now() - startTime;
         
         console.log(`Scraping result for ${urlData.material_type}:`, scrapingResult);
