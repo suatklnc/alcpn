@@ -28,18 +28,39 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Test the URL
+    // Test the URL with retry mechanism
     try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
+      const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 saniye timeout
+            
+            const response = await fetch(url, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+              },
+              signal: controller.signal,
+              timeout: 10000
+            });
+            
+            clearTimeout(timeoutId);
+            return response;
+          } catch (error) {
+            console.log(`Fetch attempt ${i + 1} failed:`, error);
+            if (i === retries - 1) throw error;
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
+          }
         }
-      });
+        throw new Error('All fetch attempts failed');
+      };
+
+      const response = await fetchWithRetry(url);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -116,10 +137,32 @@ export async function POST(request: NextRequest) {
     } catch (testError) {
       console.error('URL test error:', testError);
       
+      // Daha detaylı hata mesajı
+      let errorMessage = 'Bilinmeyen hata oluştu';
+      if (testError instanceof Error) {
+        errorMessage = testError.message;
+        
+        // Fetch hatalarını daha açıklayıcı hale getir
+        if (testError.message.includes('fetch failed')) {
+          errorMessage = 'URL\'ye erişilemiyor. URL\'nin erişilebilir olduğundan emin olun.';
+        } else if (testError.message.includes('timeout')) {
+          errorMessage = 'URL yanıt vermiyor (timeout).';
+        } else if (testError.message.includes('ENOTFOUND')) {
+          errorMessage = 'URL bulunamadı (DNS hatası).';
+        } else if (testError.message.includes('ECONNREFUSED')) {
+          errorMessage = 'Bağlantı reddedildi. URL erişilebilir değil.';
+        }
+      }
+      
       return NextResponse.json({
         success: false,
-        error: testError instanceof Error ? testError.message : 'Bilinmeyen hata oluştu',
+        error: errorMessage,
         response_time_ms: Date.now() - startTime,
+        debug_info: {
+          url: url,
+          error_type: testError instanceof Error ? testError.constructor.name : 'Unknown',
+          error_message: testError instanceof Error ? testError.message : String(testError)
+        }
       });
     }
 
