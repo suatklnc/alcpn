@@ -1004,140 +1004,140 @@ export default function URLTesterPage() {
           {showSavedUrls && (
             <div className="p-6">
               {savedUrls.length > 0 ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {savedUrls.map((savedUrl) => (
-                    <div key={savedUrl.id} className="group relative bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-blue-300 overflow-hidden min-h-[400px]">
+                    <div key={savedUrl.id} className="group relative bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300 overflow-hidden">
                       {/* Header with gradient background */}
-                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5 border-b border-gray-100">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0 pr-4">
-                            <div className="flex items-center space-x-3 mb-3">
-                              <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></div>
-                              <h3 className="font-bold text-lg text-gray-900 truncate">
-                            {MATERIAL_NAMES[savedUrl.material_type]}
-                          </h3>
-                        </div>
-                            <div className="flex items-center space-x-2 text-sm text-gray-600">
-                              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0"></div>
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                              <h3 className="font-semibold text-sm text-gray-900 truncate">
+                                {MATERIAL_NAMES[savedUrl.material_type]}
+                              </h3>
+                            </div>
+                            <div className="flex items-center space-x-1 text-xs text-gray-600">
+                              <div className="w-1 h-1 bg-gray-400 rounded-full flex-shrink-0"></div>
                               <span className="truncate" title={savedUrl.url}>
                                 {new URL(savedUrl.url).hostname}
                               </span>
                             </div>
-                        </div>
-                          <div className="flex space-x-1 flex-shrink-0">
-                          <button
-                            onClick={() => handleLoadSavedUrl(savedUrl)}
-                              className="p-2.5 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition-colors duration-200"
+                          </div>
+                          <div className="flex space-x-1 flex-shrink-0 ml-2">
+                            <button
+                              onClick={() => handleLoadSavedUrl(savedUrl)}
+                              className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors duration-200"
                               title="Düzenle"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUrl(savedUrl.id)}
-                              className="p-2.5 text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-colors duration-200"
-                            title="Sil"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        </div>
+                            >
+                              <PencilIcon className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUrl(savedUrl.id)}
+                              className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition-colors duration-200"
+                              title="Sil"
+                            >
+                              <TrashIcon className="h-3 w-3" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                       
                       {/* Content */}
-                      <div className="p-6 space-y-6">
+                      <div className="p-4 space-y-4">
                       
                         {/* Test Status */}
                         <div>
                         {savedUrl.test_result && savedUrl.test_result.success ? (
-                            <div className="bg-green-50 border border-green-200 rounded-xl p-5">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <CheckIcon className="h-6 w-6 text-green-600" />
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <CheckIcon className="h-4 w-4 text-green-600" />
                                   </div>
                                   <div>
-                                    <div className="font-semibold text-green-800 text-base">Test Başarılı</div>
-                                    <div className="text-3xl font-bold text-green-900">
-                                ₺{savedUrl.test_result.price}
+                                    <div className="font-semibold text-green-800 text-sm">Test Başarılı</div>
+                                    <div className="text-xl font-bold text-green-900">
+                                      ₺{savedUrl.test_result.price}
                                     </div>
                                   </div>
                                 </div>
+                              </div>
+                              <button
+                                onClick={() => handleSetAsDefaultPrice(savedUrl)}
+                                className="w-full bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center text-xs font-medium"
+                              >
+                                <StarIcon className="h-3 w-3 mr-1" />
+                                Varsayılan Fiyat
+                              </button>
                             </div>
-                            <button
-                              onClick={() => handleSetAsDefaultPrice(savedUrl)}
-                                className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center text-sm font-medium"
-                            >
-                                <StarIcon className="h-4 w-4 mr-2" />
-                                Varsayılan Fiyat Olarak Ayarla
-                            </button>
-                          </div>
                         ) : (
-                            <div className="bg-red-50 border border-red-200 rounded-xl p-5">
-                              <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <XMarkIcon className="h-6 w-6 text-red-600" />
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <XMarkIcon className="h-4 w-4 text-red-600" />
                                 </div>
                                 <div>
-                                  <div className="font-semibold text-red-800 text-base">Test Başarısız</div>
-                                  <div className="text-sm text-red-600">Fiyat çekilemedi</div>
+                                  <div className="font-semibold text-red-800 text-sm">Test Başarısız</div>
+                                  <div className="text-xs text-red-600">Fiyat çekilemedi</div>
                                 </div>
                               </div>
-                          </div>
+                            </div>
                         )}
                         </div>
 
                         {/* Selector Düzenleme */}
-                        <div className="bg-blue-50 rounded-xl p-5">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></div>
-                              <span className="font-semibold text-gray-800 text-base">CSS Selector</span>
+                        <div className="bg-blue-50 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                              <span className="font-semibold text-gray-800 text-sm">CSS Selector</span>
                             </div>
                             <button
                               onClick={() => handleStartEditingSelector(savedUrl)}
-                              className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition-colors duration-200"
+                              className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors duration-200"
                               title="Selector Düzenle"
                             >
-                              <PencilIcon className="h-4 w-4" />
+                              <PencilIcon className="h-3 w-3" />
                             </button>
                           </div>
 
                           {editingSelector === savedUrl.id ? (
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
                                   CSS Selector
                                 </label>
                                 <textarea
                                   value={editingSelectorValue}
                                   onChange={(e) => setEditingSelectorValue(e.target.value)}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                                  rows={3}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs text-gray-900"
+                                  rows={2}
                                   placeholder=".price, #price, [data-price]..."
                                 />
                                 <p className="text-xs text-gray-500 mt-1">
                                   Virgülle ayırarak birden fazla selector kullanabilirsiniz
                                 </p>
                               </div>
-                              <div className="flex space-x-2">
+                              <div className="flex space-x-1">
                                 <button
                                   onClick={() => handleSaveSelector(savedUrl)}
-                                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium"
+                                  className="flex-1 bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors duration-200 text-xs font-medium"
                                 >
                                   Kaydet
                                 </button>
                                 <button
                                   onClick={handleCancelEditingSelector}
-                                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors duration-200 text-sm font-medium"
+                                  className="flex-1 bg-gray-300 text-gray-700 px-2 py-1 rounded hover:bg-gray-400 transition-colors duration-200 text-xs font-medium"
                                 >
                                   İptal
                                 </button>
                               </div>
                             </div>
                           ) : (
-                            <div className="bg-white rounded-lg p-4 border border-gray-200">
-                              <div className="text-sm text-gray-600 mb-2">Mevcut Selector:</div>
-                              <div className="font-mono text-sm bg-gray-100 p-2 rounded border break-all">
+                            <div className="bg-white rounded p-2 border border-gray-200">
+                              <div className="text-xs text-gray-600 mb-1">Mevcut Selector:</div>
+                              <div className="font-mono text-xs bg-gray-100 p-1 rounded border break-all text-gray-900">
                                 {savedUrl.selector}
                               </div>
                             </div>
@@ -1145,15 +1145,15 @@ export default function URLTesterPage() {
                         </div>
 
                         {/* Auto-scraping Section */}
-                        <div className="bg-gray-50 rounded-xl p-5">
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-3 h-3 bg-purple-500 rounded-full flex-shrink-0"></div>
-                              <span className="font-semibold text-gray-800 text-base">Otomatik Fiyat Çekme</span>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0"></div>
+                              <span className="font-semibold text-gray-800 text-sm">Otomatik Çekim</span>
                             </div>
                             <button
                               onClick={() => handleToggleAutoScraping(savedUrl)}
-                              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center ${
+                              className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 flex items-center ${
                                 savedUrl.auto_scraping_enabled 
                                   ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300' 
                                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300'
@@ -1161,12 +1161,12 @@ export default function URLTesterPage() {
                             >
                               {savedUrl.auto_scraping_enabled ? (
                                 <>
-                                  <PlayIcon className="h-4 w-4 mr-2" />
+                                  <PlayIcon className="h-3 w-3 mr-1" />
                                   Aktif
                                 </>
                               ) : (
                                 <>
-                                  <PauseIcon className="h-4 w-4 mr-2" />
+                                  <PauseIcon className="h-3 w-3 mr-1" />
                                   Pasif
                                 </>
                               )}
@@ -1174,40 +1174,23 @@ export default function URLTesterPage() {
                           </div>
 
                           {savedUrl.auto_scraping_enabled && (
-                            <div className="mb-4">
-                              <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
-                                <div className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Fiyat Çarpanı</div>
-                                <div className="font-bold text-2xl text-gray-900">
+                            <div className="mb-2">
+                              <div className="bg-white rounded p-2 border border-gray-200 text-center">
+                                <div className="text-xs text-gray-500 mb-1">Çarpan</div>
+                                <div className="font-bold text-lg text-gray-900">
                                   {savedUrl.price_multiplier || 1}x
                                 </div>
                               </div>
                             </div>
                           )}
 
-                          {savedUrl.auto_scraping_enabled && (savedUrl.last_auto_scraped_at || savedUrl.next_auto_scrape_at) && (
-                            <div className="space-y-3 mb-4">
-                              {savedUrl.last_auto_scraped_at && (
-                                <div className="flex items-center space-x-3 text-sm text-gray-600 bg-white rounded-lg p-3 border border-gray-200">
-                                  <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                  <span>Son çekim: {new Date(savedUrl.last_auto_scraped_at).toLocaleString('tr-TR')}</span>
-                                </div>
-                              )}
-                              {savedUrl.next_auto_scrape_at && (
-                                <div className="flex items-center space-x-3 text-sm text-gray-600 bg-white rounded-lg p-3 border border-gray-200">
-                                  <ArrowPathIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                  <span>Sonraki çekim: {new Date(savedUrl.next_auto_scrape_at).toLocaleString('tr-TR')}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="flex space-x-3">
+                          <div className="flex space-x-1">
                             <button
                               onClick={() => handleRunManualScraping(savedUrl)}
-                              className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center text-sm font-medium"
+                              className="flex-1 bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center text-xs font-medium"
                             >
-                              <ArrowPathIcon className="h-4 w-4 mr-2" />
-                              Şimdi Çek
+                              <ArrowPathIcon className="h-3 w-3 mr-1" />
+                              Çek
                             </button>
                             <button
                               onClick={() => {
@@ -1220,9 +1203,9 @@ export default function URLTesterPage() {
                                   );
                                 }
                               }}
-                              className="bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center text-sm font-medium"
+                              className="bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700 transition-colors duration-200 flex items-center text-xs font-medium"
                             >
-                              <Cog6ToothIcon className="h-4 w-4" />
+                              <Cog6ToothIcon className="h-3 w-3" />
                             </button>
                           </div>
                         </div>
