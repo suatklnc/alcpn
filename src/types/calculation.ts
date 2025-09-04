@@ -30,6 +30,7 @@ export type MaterialType =
   | 'celik_dubel'
   | 'clip_in_aski_masasi'
   | 'alüminyum_plaka'
+  | 'plaka'
   // Duvar malzemeleri
   | 'duvar_u_profili'
   | 'duvar_c_profili'
@@ -182,6 +183,14 @@ export const MATERIAL_COEFFICIENTS: Record<MaterialType, MaterialInfo> = {
     unit: 'adet',
     coefficient: 3, // 3 × m²
     description: 'Alüminyum plaka',
+    defaultUnitPrice: 30,
+  },
+  plaka: {
+    type: 'plaka',
+    name: 'Plaka',
+    unit: 'adet',
+    coefficient: 3, // 3 × m²
+    description: 'Plaka',
     defaultUnitPrice: 30,
   },
   // Duvar malzemeleri
