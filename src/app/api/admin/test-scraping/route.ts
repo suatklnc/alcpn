@@ -117,205 +117,215 @@ export async function POST(request: NextRequest) {
         console.error('HTML parsing error:', parseError);
       }
 
-      if (extractedData.price) {
-        // Enhanced debug for successful cases too
-        const debugInfo = {
-          totalElements: $('*').length,
-          priceElements: $('[class*="price"], [id*="price"], [data-price]').length,
-          metaTags: $('meta[property*="price"], meta[name*="price"]').length,
-          jsonLdScripts: $('script[type="application/ld+json"]').length,
-          selectorAttempts: [] as Array<{
-            selector: string;
-            elementsFound: number;
-            textContent: string[];
-            extractedPrice: number | null;
-          }>,
-          commonSelectors: {
-            '.price': $('.price').length,
-            '.product-price': $('.product-price').length,
-            '.current-price': $('.current-price').length,
-            '[data-price]': $('[data-price]').length,
-            '[class*="price"]': $('[class*="price"]').length,
-          },
-          metaTagPrices: [] as string[],
-          jsonLdPrices: [] as string[],
-          commonSelectorResults: [] as Array<{
-            selector: string;
-            elementsFound: number;
-            textContent: string[];
-            extractedPrice: number | null;
-          }>
-        };
+      // Always collect all possible prices for user selection
+      const allPossiblePrices: Array<{
+        selector: string;
+        price: number;
+        textContent: string;
+        elementCount: number;
+        source: 'provided' | 'common' | 'meta' | 'jsonld';
+      }> = [];
 
-        // Try the provided selector first and log details
-        const providedSelectors = selector.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
-        for (const singleSelector of providedSelectors) {
-          const elements = $(singleSelector);
-          const textContents = elements.map((i, el) => $(el).text().trim()).get();
-          const extractedPrice = extractPriceFromText(textContents.join(' '));
-          
-          debugInfo.selectorAttempts.push({
-            selector: singleSelector,
-            elementsFound: elements.length,
-            textContent: textContents,
-            extractedPrice: extractedPrice
-          });
-        }
-
-        // Try common price selectors and log details
-        const commonPriceSelectors = [
-          '.price', '.product-price', '.current-price', '.sale-price', '.final-price',
-          '.price-current', '.price-now', '.price-value', '.price-amount',
-          '.cost', '.amount', '.value', '.fiyat', '.tutar',
-          '#price', '#product-price', '#current-price', '#final-price',
-          '[data-price]', '[data-testid*="price"]', '[class*="price"]'
-        ];
-
-        for (const commonSelector of commonPriceSelectors) {
-          const elements = $(commonSelector);
-          const textContents = elements.map((i, el) => $(el).text().trim()).get();
-          const extractedPrice = extractPriceFromText(textContents.join(' '));
-          
-          debugInfo.commonSelectorResults.push({
-            selector: commonSelector,
-            elementsFound: elements.length,
-            textContent: textContents,
-            extractedPrice: extractedPrice
-          });
-        }
-
-        // Try meta tags
-        const metaPrice = $('meta[property="product:price:amount"]').attr('content') ||
-                         $('meta[name="price"]').attr('content') ||
-                         $('meta[property="og:price:amount"]').attr('content') ||
-                         $('meta[property="product:price"]').attr('content') ||
-                         $('meta[name="twitter:data1"]').attr('content');
+      // Try the provided selector first
+      const providedSelectors = selector.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+      for (const singleSelector of providedSelectors) {
+        const elements = $(singleSelector);
+        const textContents = elements.map((i, el) => $(el).text().trim()).get();
+        const extractedPrice = extractPriceFromText(textContents.join(' '));
         
-        if (metaPrice) {
-          debugInfo.metaTagPrices.push(metaPrice);
+        if (extractedPrice) {
+          allPossiblePrices.push({
+            selector: singleSelector,
+            price: extractedPrice,
+            textContent: textContents.join(' | '),
+            elementCount: elements.length,
+            source: 'provided'
+          });
         }
+      }
 
-        // Try JSON-LD
-        const jsonLdScripts = $('script[type="application/ld+json"]');
-        for (let i = 0; i < jsonLdScripts.length; i++) {
-          try {
-            const jsonText = $(jsonLdScripts[i]).html();
-            if (jsonText) {
-              const jsonData = JSON.parse(jsonText);
-              const price = extractPriceFromJsonLd(jsonData);
-              if (price) {
-                debugInfo.jsonLdPrices.push(JSON.stringify(jsonData));
-              }
+      // Try common price selectors
+      const commonPriceSelectors = [
+        '.price', '.product-price', '.current-price', '.sale-price', '.final-price',
+        '.price-current', '.price-now', '.price-value', '.price-amount',
+        '.cost', '.amount', '.value', '.fiyat', '.tutar',
+        '#price', '#product-price', '#current-price', '#final-price',
+        '[data-price]', '[data-testid*="price"]', '[class*="price"]'
+      ];
+
+      for (const commonSelector of commonPriceSelectors) {
+        const elements = $(commonSelector);
+        const textContents = elements.map((i, el) => $(el).text().trim()).get();
+        const extractedPrice = extractPriceFromText(textContents.join(' '));
+        
+        if (extractedPrice) {
+          // Avoid duplicates
+          const exists = allPossiblePrices.some(p => p.price === extractedPrice && p.selector === commonSelector);
+          if (!exists) {
+            allPossiblePrices.push({
+              selector: commonSelector,
+              price: extractedPrice,
+              textContent: textContents.join(' | '),
+              elementCount: elements.length,
+              source: 'common'
+            });
+          }
+        }
+      }
+
+      // Try meta tags
+      const metaPrice = $('meta[property="product:price:amount"]').attr('content') ||
+                       $('meta[name="price"]').attr('content') ||
+                       $('meta[property="og:price:amount"]').attr('content') ||
+                       $('meta[property="product:price"]').attr('content') ||
+                       $('meta[name="twitter:data1"]').attr('content');
+      
+      if (metaPrice) {
+        const extractedPrice = extractPriceFromText(metaPrice);
+        if (extractedPrice) {
+          allPossiblePrices.push({
+            selector: 'meta tag',
+            price: extractedPrice,
+            textContent: metaPrice,
+            elementCount: 1,
+            source: 'meta'
+          });
+        }
+      }
+
+      // Try JSON-LD
+      const jsonLdScripts = $('script[type="application/ld+json"]');
+      for (let i = 0; i < jsonLdScripts.length; i++) {
+        try {
+          const jsonText = $(jsonLdScripts[i]).html();
+          if (jsonText) {
+            const jsonData = JSON.parse(jsonText);
+            const price = extractPriceFromJsonLd(jsonData);
+            if (price) {
+              allPossiblePrices.push({
+                selector: 'JSON-LD',
+                price: price,
+                textContent: JSON.stringify(jsonData).substring(0, 100) + '...',
+                elementCount: 1,
+                source: 'jsonld'
+              });
             }
-          } catch { /* Ignore JSON parsing errors */ }
-        }
+          }
+        } catch { /* Ignore JSON parsing errors */ }
+      }
 
+      // Enhanced debug for successful cases too
+      const debugInfo = {
+        totalElements: $('*').length,
+        priceElements: $('[class*="price"], [id*="price"], [data-price]').length,
+        metaTags: $('meta[property*="price"], meta[name*="price"]').length,
+        jsonLdScripts: $('script[type="application/ld+json"]').length,
+        selectorAttempts: [] as Array<{
+          selector: string;
+          elementsFound: number;
+          textContent: string[];
+          extractedPrice: number | null;
+        }>,
+        commonSelectors: {
+          '.price': $('.price').length,
+          '.product-price': $('.product-price').length,
+          '.current-price': $('.current-price').length,
+          '[data-price]': $('[data-price]').length,
+          '[class*="price"]': $('[class*="price"]').length,
+        },
+        metaTagPrices: [] as string[],
+        jsonLdPrices: [] as string[],
+        commonSelectorResults: [] as Array<{
+          selector: string;
+          elementsFound: number;
+          textContent: string[];
+          extractedPrice: number | null;
+        }>
+      };
+
+      // Try the provided selector first and log details
+      const debugProvidedSelectors = selector.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+      for (const singleSelector of debugProvidedSelectors) {
+        const elements = $(singleSelector);
+        const textContents = elements.map((i, el) => $(el).text().trim()).get();
+        const extractedPrice = extractPriceFromText(textContents.join(' '));
+        
+        debugInfo.selectorAttempts.push({
+          selector: singleSelector,
+          elementsFound: elements.length,
+          textContent: textContents,
+          extractedPrice: extractedPrice
+        });
+      }
+
+      // Try common price selectors and log details
+      const debugCommonPriceSelectors = [
+        '.price', '.product-price', '.current-price', '.sale-price', '.final-price',
+        '.price-current', '.price-now', '.price-value', '.price-amount',
+        '.cost', '.amount', '.value', '.fiyat', '.tutar',
+        '#price', '#product-price', '#current-price', '#final-price',
+        '[data-price]', '[data-testid*="price"]', '[class*="price"]'
+      ];
+
+      for (const commonSelector of debugCommonPriceSelectors) {
+        const elements = $(commonSelector);
+        const textContents = elements.map((i, el) => $(el).text().trim()).get();
+        const extractedPrice = extractPriceFromText(textContents.join(' '));
+        
+        debugInfo.commonSelectorResults.push({
+          selector: commonSelector,
+          elementsFound: elements.length,
+          textContent: textContents,
+          extractedPrice: extractedPrice
+        });
+      }
+
+      // Try meta tags
+      const debugMetaPrice = $('meta[property="product:price:amount"]').attr('content') ||
+                       $('meta[name="price"]').attr('content') ||
+                       $('meta[property="og:price:amount"]').attr('content') ||
+                       $('meta[property="product:price"]').attr('content') ||
+                       $('meta[name="twitter:data1"]').attr('content');
+      
+      if (debugMetaPrice) {
+        debugInfo.metaTagPrices.push(debugMetaPrice);
+      }
+
+      // Try JSON-LD
+      const debugJsonLdScripts = $('script[type="application/ld+json"]');
+      for (let i = 0; i < debugJsonLdScripts.length; i++) {
+        try {
+          const jsonText = $(debugJsonLdScripts[i]).html();
+          if (jsonText) {
+            const jsonData = JSON.parse(jsonText);
+            const price = extractPriceFromJsonLd(jsonData);
+            if (price) {
+              debugInfo.jsonLdPrices.push(JSON.stringify(jsonData));
+            }
+          }
+        } catch { /* Ignore JSON parsing errors */ }
+      }
+
+      // Sort prices by value (highest first) for better user experience
+      allPossiblePrices.sort((a, b) => b.price - a.price);
+
+      if (extractedData.price) {
         return NextResponse.json({
           success: true,
           data: extractedData,
           response_time_ms: responseTime,
           message: `Fiyat başarıyla çekildi: ₺${extractedData.price}`,
-          debug_info: debugInfo
+          debug_info: debugInfo,
+          possible_prices: allPossiblePrices
         });
       } else {
-        // Enhanced debug: Try to find what selectors exist on the page
-        const debugInfo = {
-          totalElements: $('*').length,
-          priceElements: $('[class*="price"], [id*="price"], [data-price]').length,
-          metaTags: $('meta[property*="price"], meta[name*="price"]').length,
-          jsonLdScripts: $('script[type="application/ld+json"]').length,
-          selectorAttempts: [] as Array<{
-            selector: string;
-            elementsFound: number;
-            textContent: string[];
-            extractedPrice: number | null;
-          }>,
-          commonSelectors: {
-            '.price': $('.price').length,
-            '.product-price': $('.product-price').length,
-            '.current-price': $('.current-price').length,
-            '[data-price]': $('[data-price]').length,
-            '[class*="price"]': $('[class*="price"]').length,
-          },
-          metaTagPrices: [] as string[],
-          jsonLdPrices: [] as string[],
-          commonSelectorResults: [] as Array<{
-            selector: string;
-            elementsFound: number;
-            textContent: string[];
-            extractedPrice: number | null;
-          }>
-        };
-
-        // Try the provided selector first and log details
-        const providedSelectors = selector.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
-        for (const singleSelector of providedSelectors) {
-          const elements = $(singleSelector);
-          const textContents = elements.map((i, el) => $(el).text().trim()).get();
-          const extractedPrice = extractPriceFromText(textContents.join(' '));
-          
-          debugInfo.selectorAttempts.push({
-            selector: singleSelector,
-            elementsFound: elements.length,
-            textContent: textContents,
-            extractedPrice: extractedPrice
-          });
-        }
-
-        // Try common price selectors and log details
-        const commonPriceSelectors = [
-          '.price', '.product-price', '.current-price', '.sale-price', '.final-price',
-          '.price-current', '.price-now', '.price-value', '.price-amount',
-          '.cost', '.amount', '.value', '.fiyat', '.tutar',
-          '#price', '#product-price', '#current-price', '#final-price',
-          '[data-price]', '[data-testid*="price"]', '[class*="price"]'
-        ];
-
-        for (const commonSelector of commonPriceSelectors) {
-          const elements = $(commonSelector);
-          const textContents = elements.map((i, el) => $(el).text().trim()).get();
-          const extractedPrice = extractPriceFromText(textContents.join(' '));
-          
-          debugInfo.commonSelectorResults.push({
-            selector: commonSelector,
-            elementsFound: elements.length,
-            textContent: textContents,
-            extractedPrice: extractedPrice
-          });
-        }
-
-        // Try meta tags
-        const metaPrice = $('meta[property="product:price:amount"]').attr('content') ||
-                         $('meta[name="price"]').attr('content') ||
-                         $('meta[property="og:price:amount"]').attr('content') ||
-                         $('meta[property="product:price"]').attr('content') ||
-                         $('meta[name="twitter:data1"]').attr('content');
-        
-        if (metaPrice) {
-          debugInfo.metaTagPrices.push(metaPrice);
-        }
-
-        // Try JSON-LD
-        const jsonLdScripts = $('script[type="application/ld+json"]');
-        for (let i = 0; i < jsonLdScripts.length; i++) {
-          try {
-            const jsonText = $(jsonLdScripts[i]).html();
-            if (jsonText) {
-              const jsonData = JSON.parse(jsonText);
-              const price = extractPriceFromJsonLd(jsonData);
-              if (price) {
-                debugInfo.jsonLdPrices.push(JSON.stringify(jsonData));
-              }
-            }
-          } catch { /* Ignore JSON parsing errors */ }
-        }
-
         return NextResponse.json({
           success: false,
           error: 'Belirtilen CSS selector ile fiyat bulunamadı. Selector\'ı kontrol edin.',
           response_time_ms: responseTime,
           html_preview: html.substring(0, 1000) + '...', // First 1000 chars for debugging
           debug_info: debugInfo,
+          possible_prices: allPossiblePrices
         });
       }
 
