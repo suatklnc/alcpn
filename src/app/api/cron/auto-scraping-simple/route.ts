@@ -42,8 +42,8 @@ async function processSimpleScraping() {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Sadece 1 URL çek - en eski olanı
-    const { data: urlsToScrape, error: fetchError } = await supabase
+    // Sadece 1 URL çek - en eski olanı (service client ile)
+    const { data: urlsToScrape, error: fetchError } = await supabaseService
       .from('custom_scraping_urls')
       .select('*')
       .eq('auto_scraping_enabled', true)
