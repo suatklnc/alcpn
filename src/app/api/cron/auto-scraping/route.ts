@@ -33,9 +33,7 @@ async function processScrapingInBackground() {
   try {
     console.log('Background scraping started at:', new Date().toISOString());
     
-    const supabase = await createClient();
-    
-    // Service role client for RLS bypass
+    // Sadece service role client kullan - RLS bypass için
     const supabaseService = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
