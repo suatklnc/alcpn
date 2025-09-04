@@ -460,6 +460,8 @@ function extractPriceWithCheerio($: cheerio.CheerioAPI, selector: string): numbe
 
 function extractPriceFromText(text: string): number | null {
   try {
+    console.log(`[EXTRACT-PRICE] Input text: "${text}"`);
+    
     // Turkish price patterns - more comprehensive
     const pricePatterns = [
       // Turkish currency patterns
@@ -481,30 +483,41 @@ function extractPriceFromText(text: string): number | null {
     for (const pattern of pricePatterns) {
       const matches = text.match(pattern);
       if (matches) {
+        console.log(`[EXTRACT-PRICE] Pattern matches:`, matches);
         for (const match of matches) {
           const numberMatch = match.match(/(\d+(?:[.,]\d+)?)/);
           if (numberMatch) {
             let priceStr = numberMatch[1];
+            console.log(`[EXTRACT-PRICE] Original price string: "${priceStr}"`);
             
             // Turkish number format: 3.900,00 -> 3900.00
             // Check if it's Turkish format (dot as thousands separator, comma as decimal)
             if (priceStr.includes('.') && priceStr.includes(',')) {
               // Turkish format: 3.900,00 -> 3900.00
               priceStr = priceStr.replace(/\./g, '').replace(',', '.');
+              console.log(`[EXTRACT-PRICE] Turkish format detected, converted to: "${priceStr}"`);
             } else if (priceStr.includes(',')) {
               // European format: 3900,00 -> 3900.00
               priceStr = priceStr.replace(',', '.');
+              console.log(`[EXTRACT-PRICE] European format detected, converted to: "${priceStr}"`);
             }
             
             const price = parseFloat(priceStr);
+            console.log(`[EXTRACT-PRICE] Parsed price: ${price}`);
+            
             // Reasonable price range check (0.01 to 100000)
             if (price > 0.01 && price < 100000) {
               foundPrices.push(price);
+              console.log(`[EXTRACT-PRICE] Added to found prices: ${price}`);
+            } else {
+              console.log(`[EXTRACT-PRICE] Price ${price} outside range, skipped`);
             }
           }
         }
       }
     }
+
+    console.log(`[EXTRACT-PRICE] All found prices:`, foundPrices);
 
     // Return the most likely price (usually the first reasonable one)
     if (foundPrices.length > 0) {
@@ -515,11 +528,14 @@ function extractPriceFromText(text: string): number | null {
         const bScore = (b >= 1 && b <= 1000) ? 1 : 0;
         return bScore - aScore;
       });
+      console.log(`[EXTRACT-PRICE] Final selected price: ${foundPrices[0]}`);
       return foundPrices[0];
     }
 
+    console.log(`[EXTRACT-PRICE] No valid prices found`);
     return null;
-  } catch {
+  } catch (error) {
+    console.log(`[EXTRACT-PRICE] Error:`, error);
     return null;
   }
 }
