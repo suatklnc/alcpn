@@ -658,23 +658,20 @@ export async function GET(request: NextRequest) {
           
           // Manuel API'yi kullanarak fiyat güncelle
           try {
-            const priceUpdateResponse = await fetch(`${request.nextUrl.origin}/api/admin/update-material-price-simple`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
+            const { error: priceUpdateError } = await supabase
+              .from('material_prices')
+              .upsert({
                 material_type: urlData.material_type,
-                price: finalPrice,
-              }),
-            });
+                unit_price: finalPrice,
+                updated_at: new Date().toISOString(),
+              }, {
+                onConflict: 'material_type'
+              });
 
-            if (priceUpdateResponse.ok) {
-              const priceUpdateResult = await priceUpdateResponse.json();
-              console.log('Material price updated successfully via API:', priceUpdateResult);
+            if (priceUpdateError) {
+              console.error('Error updating material price:', priceUpdateError);
             } else {
-              const errorData = await priceUpdateResponse.json();
-              console.error('Error updating material price via API:', errorData);
+              console.log('Material price updated successfully');
             }
           } catch (error) {
             console.error('Error calling price update API:', error);
@@ -840,23 +837,20 @@ export async function POST(request: NextRequest) {
           
           // Manuel API'yi kullanarak fiyat güncelle
           try {
-            const priceUpdateResponse = await fetch(`${request.nextUrl.origin}/api/admin/update-material-price-simple`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
+            const { error: priceUpdateError } = await supabase
+              .from('material_prices')
+              .upsert({
                 material_type: urlData.material_type,
-                price: finalPrice,
-              }),
-            });
+                unit_price: finalPrice,
+                updated_at: new Date().toISOString(),
+              }, {
+                onConflict: 'material_type'
+              });
 
-            if (priceUpdateResponse.ok) {
-              const priceUpdateResult = await priceUpdateResponse.json();
-              console.log('Material price updated successfully via API:', priceUpdateResult);
+            if (priceUpdateError) {
+              console.error('Error updating material price:', priceUpdateError);
             } else {
-              const errorData = await priceUpdateResponse.json();
-              console.error('Error updating material price via API:', errorData);
+              console.log('Material price updated successfully');
             }
           } catch (error) {
             console.error('Error calling price update API:', error);
