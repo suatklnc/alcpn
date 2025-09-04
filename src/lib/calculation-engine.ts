@@ -13,7 +13,7 @@ import { getMaterialsForJobType } from '@/lib/material-utils';
 export class CalculationEngine {
   private static materialPricesCache: Record<string, number> | null = null;
   private static cacheTimestamp: number = 0;
-  private static CACHE_DURATION = 5 * 60 * 1000; // 5 dakika
+  private static CACHE_DURATION = 30 * 1000; // 30 saniye
 
 
 
@@ -46,14 +46,15 @@ export class CalculationEngine {
     }
   }
 
-  // Malzeme fiyatlarını getir (cache'li)
+  // Malzeme fiyatlarını getir (cache devre dışı - her zaman güncel fiyatları al)
   private static async getMaterialPrices(): Promise<Record<string, number>> {
-    const now = Date.now();
-    
-    // Cache kontrolü
-    if (this.materialPricesCache && (now - this.cacheTimestamp) < this.CACHE_DURATION) {
-      return this.materialPricesCache;
-    }
+    // Cache'i devre dışı bırak - her zaman güncel fiyatları al
+    // const now = Date.now();
+    // 
+    // // Cache kontrolü
+    // if (this.materialPricesCache && (now - this.cacheTimestamp) < this.CACHE_DURATION) {
+    //   return this.materialPricesCache;
+    // }
 
     try {
       // Environment detection: Server-side vs Client-side
@@ -78,16 +79,18 @@ export class CalculationEngine {
           });
         }
 
-        this.materialPricesCache = prices;
-        this.cacheTimestamp = now;
+        // Cache'i devre dışı bırak
+        // this.materialPricesCache = prices;
+        // this.cacheTimestamp = now;
         return prices;
       } else {
         // Client-side: API endpoint kullan
         const response = await fetch('/api/material-prices');
         if (response.ok) {
           const prices = await response.json();
-          this.materialPricesCache = prices;
-          this.cacheTimestamp = now;
+          // Cache'i devre dışı bırak
+          // this.materialPricesCache = prices;
+          // this.cacheTimestamp = now;
           return prices;
         }
       }
