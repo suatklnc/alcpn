@@ -48,8 +48,8 @@ async function processScrapingInBackground() {
       .eq('auto_scraping_enabled', true)
       .eq('is_active', true);
 
-    console.log('All active auto-scraping URLs:', allActiveUrls);
-    console.log('Current time:', new Date().toISOString());
+    // console.log('All active auto-scraping URLs:', allActiveUrls);
+    // console.log('Current time:', new Date().toISOString());
 
     // Aktif URL'leri çek - zaman kontrolü ile
     const { data: urlsToScrape, error: fetchError } = await supabase
@@ -61,7 +61,7 @@ async function processScrapingInBackground() {
       .order('next_auto_scrape_at', { ascending: true })
       .limit(5); // Maksimum 5 URL ile sınırla
 
-    console.log('URLs ready for scraping:', urlsToScrape);
+    // console.log('URLs ready for scraping:', urlsToScrape);
 
     if (fetchError) {
       console.error('Error fetching URLs for auto-scraping:', fetchError);
@@ -104,7 +104,7 @@ async function processScrapingInBackground() {
         };
         const responseTime = Date.now() - startTime;
         
-        console.log(`Scraping result for ${urlData.material_type}:`, scrapingResult);
+        // console.log(`Scraping result for ${urlData.material_type}:`, scrapingResult);
 
         // Scraping sonucunu veritabanına kaydet (service client ile)
         const { error: historyError } = await supabaseService
@@ -130,7 +130,7 @@ async function processScrapingInBackground() {
         if (scrapingResult.success && scrapingResult.data?.price) {
           const finalPrice = (typeof scrapingResult.data.price === 'number' ? scrapingResult.data.price * (urlData.price_multiplier || 1) : null);
           
-          console.log(`Updating material price for ${urlData.material_type}: ${finalPrice}`);
+          // console.log(`Updating material price for ${urlData.material_type}: ${finalPrice}`);
           
           // Doğrudan Supabase ile material_prices tablosunu güncelle (RLS bypass)
           try {
@@ -147,13 +147,13 @@ async function processScrapingInBackground() {
             if (priceUpdateError) {
               console.error('Error updating material price directly:', priceUpdateError);
             } else {
-              console.log('Material price updated successfully directly:', priceUpdateData);
+              // console.log('Material price updated successfully directly:', priceUpdateData);
             }
           } catch (error) {
             console.error('Error updating material price directly:', error);
           }
         } else {
-          console.log(`Skipping price update for ${urlData.material_type}: success=${scrapingResult.success}, price=${scrapingResult.data?.price}`);
+          // console.log(`Skipping price update for ${urlData.material_type}: success=${scrapingResult.success}, price=${scrapingResult.data?.price}`);
         }
 
         results.push({
@@ -173,6 +173,18 @@ async function processScrapingInBackground() {
         } else {
           errorCount++;
         }
+
+        // next_auto_scrape_at'ı güncelle (service client ile)
+        const nextScrapeTime = new Date();
+        nextScrapeTime.setHours(nextScrapeTime.getHours() + (urlData.auto_scraping_interval_hours || 24));
+        
+        await supabaseService
+          .from('custom_scraping_urls')
+          .update({
+            last_auto_scraped_at: new Date().toISOString(),
+            next_auto_scrape_at: nextScrapeTime.toISOString()
+          })
+          .eq('id', urlData.id);
 
         // Rate limiting için kısa bekleme (200ms'ye düşürüldü)
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -208,8 +220,8 @@ async function processScrapingInBackground() {
       }
     }
 
-    console.log(`Background scraping completed. ${successCount} successful, ${errorCount} failed.`);
-    console.log('Results:', results);
+    // console.log(`Background scraping completed. ${successCount} successful, ${errorCount} failed.`);
+    // console.log('Results:', results);
 
   } catch (error) {
     console.error('Background scraping error:', error);
