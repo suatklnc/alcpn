@@ -28,44 +28,55 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Test the URL with retry mechanism
+    // Test the URL with proxy fallback
     try {
-      const fetchWithRetry = async (url: string, retries = 3): Promise<Response> => {
-        for (let i = 0; i < retries; i++) {
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 saniye timeout
-            
-            const response = await fetch(url, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-              },
-              signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            return response;
-          } catch (error) {
-            console.log(`Fetch attempt ${i + 1} failed:`, error);
-            if (i === retries - 1) throw error;
-            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
-          }
+      let html: string;
+      
+      // Önce doğrudan fetch dene
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+          },
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        throw new Error('All fetch attempts failed');
-      };
-
-      const response = await fetchWithRetry(url);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        
+        html = await response.text();
+        
+      } catch (directFetchError) {
+        console.log('Direct fetch failed, trying proxy:', directFetchError);
+        
+        // Proxy kullan
+        const proxyResponse = await fetch(`${request.nextUrl.origin}/api/proxy/fetch`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url })
+        });
+        
+        const proxyResult = await proxyResponse.json();
+        
+        if (!proxyResult.success) {
+          throw new Error(`Proxy fetch failed: ${proxyResult.error}`);
+        }
+        
+        html = proxyResult.data.html;
       }
-
-      const html = await response.text();
       const responseTime = Date.now() - startTime;
       
       // Parse HTML with Cheerio
@@ -143,13 +154,17 @@ export async function POST(request: NextRequest) {
         
         // Fetch hatalarını daha açıklayıcı hale getir
         if (testError.message.includes('fetch failed')) {
-          errorMessage = 'URL\'ye erişilemiyor. URL\'nin erişilebilir olduğundan emin olun.';
+          errorMessage = `URL'ye erişilemiyor (fetch failed). Railway network kısıtlaması olabilir. Orijinal hata: ${testError.message}`;
         } else if (testError.message.includes('timeout')) {
           errorMessage = 'URL yanıt vermiyor (timeout).';
         } else if (testError.message.includes('ENOTFOUND')) {
           errorMessage = 'URL bulunamadı (DNS hatası).';
         } else if (testError.message.includes('ECONNREFUSED')) {
           errorMessage = 'Bağlantı reddedildi. URL erişilebilir değil.';
+        } else if (testError.message.includes('AbortError')) {
+          errorMessage = 'İstek zaman aşımına uğradı (10 saniye).';
+        } else if (testError.message.includes('TypeError')) {
+          errorMessage = `Network hatası: ${testError.message}`;
         }
       }
       
