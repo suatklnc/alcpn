@@ -7,6 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { url, selector } = body;
+    
+    console.log('Test scraping endpoint called with:', { url, selector });
 
     if (!url || !selector) {
       return NextResponse.json(
@@ -69,7 +71,10 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({ url })
         });
         
+        console.log('Proxy response status:', proxyResponse.status);
+        
         const proxyResult = await proxyResponse.json();
+        console.log('Proxy result:', proxyResult);
         
         if (!proxyResult.success) {
           throw new Error(`Proxy fetch failed: ${proxyResult.error}`);
