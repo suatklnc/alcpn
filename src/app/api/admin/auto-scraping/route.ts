@@ -1,5 +1,294 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import * as cheerio from 'cheerio';
+
+// Scraping fonksiyonu - internal fetch yerine doğrudan kullan
+async function performScraping(url: string, selector: string, materialType: string) {
+  try {
+    console.log(`[PERFORM-SCRAPING] Starting for ${materialType} - ${url}`);
+    
+    // Önce doğrudan fetch dene
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1',
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const html = await response.text();
+      console.log(`[PERFORM-SCRAPING] Direct fetch successful for ${materialType}`);
+      
+      return await parseHtml(html, selector, materialType);
+      
+    } catch (directFetchError) {
+      console.log(`[PERFORM-SCRAPING] Direct fetch failed, trying proxy for ${materialType}:`, directFetchError);
+      
+      // Proxy kullan
+      const proxyResponse = await fetch(`${process.env.RAILWAY_PUBLIC_DOMAIN || 'https://alcpn-production.up.railway.app'}/api/proxy/fetch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url })
+      });
+      
+      console.log(`[PERFORM-SCRAPING] Proxy response status: ${proxyResponse.status}`);
+      
+      const proxyResult = await proxyResponse.json();
+      console.log(`[PERFORM-SCRAPING] Proxy result:`, proxyResult);
+      
+      if (!proxyResult.success) {
+        throw new Error(`Proxy fetch failed: ${proxyResult.error}`);
+      }
+      
+      return await parseHtml(proxyResult.data.html, selector, materialType);
+    }
+    
+  } catch (error) {
+    console.error(`[PERFORM-SCRAPING] Error for ${materialType}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      data: null
+    };
+  }
+}
+
+// HTML parsing fonksiyonu
+async function parseHtml(html: string, selector: string, materialType: string) {
+  try {
+    const $ = cheerio.load(html);
+    const extractedData: Record<string, unknown> = {};
+    
+    // Extract price using the provided selector
+    const priceMatch = extractPriceWithCheerio($ as cheerio.CheerioAPI, selector);
+    if (priceMatch) {
+      extractedData.price = priceMatch;
+    }
+
+    // Try to extract title
+    const titleMatch = extractTitleWithCheerio($ as cheerio.CheerioAPI);
+    if (titleMatch) {
+      extractedData.title = titleMatch;
+    }
+
+    // Try to extract availability
+    const availabilityMatch = extractAvailabilityWithCheerio($ as cheerio.CheerioAPI);
+    if (availabilityMatch) {
+      extractedData.availability = availabilityMatch;
+    }
+
+    // Try to extract image
+    const imageMatch = extractImageWithCheerio($ as cheerio.CheerioAPI);
+    if (imageMatch) {
+      extractedData.image = imageMatch;
+    }
+
+    if (extractedData.price) {
+      console.log(`[PARSE-HTML] Successfully extracted price ${extractedData.price} for ${materialType}`);
+      return {
+        success: true,
+        data: extractedData,
+        message: `Fiyat başarıyla çekildi: ₺${extractedData.price}`
+      };
+    } else {
+      console.log(`[PARSE-HTML] No price found for ${materialType} with selector: ${selector}`);
+      return {
+        success: false,
+        error: 'Belirtilen CSS selector ile fiyat bulunamadı',
+        data: null
+      };
+    }
+    
+  } catch (error) {
+    console.error(`[PARSE-HTML] Error parsing HTML for ${materialType}:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'HTML parsing error',
+      data: null
+    };
+  }
+}
+
+// Helper functions (test-scraping'den kopyalandı)
+function extractPriceWithCheerio($: cheerio.CheerioAPI, selector: string): number | null {
+  try {
+    const priceElement = $(selector);
+    if (priceElement.length > 0) {
+      const priceText = priceElement.text().trim();
+      const price = extractPriceFromText(priceText);
+      if (price) return price;
+    }
+
+    // Common price selectors
+    const commonPriceSelectors = [
+      '.price', '.product-price', '.current-price', '.sale-price', '.final-price',
+      '.price-current', '.price-now', '.price-value', '.price-amount',
+      '.cost', '.amount', '.value', '.fiyat', '.tutar',
+      '#price', '#product-price', '#current-price', '#final-price',
+      '[data-price]', '[data-testid*="price"]', '[data-testid*="Price"]',
+      '[class*="price"]', '[class*="Price"]', '[class*="PRICE"]',
+      '[data-value]', '[data-amount]', '[data-cost]'
+    ];
+
+    for (const commonSelector of commonPriceSelectors) {
+      const element = $(commonSelector);
+      if (element.length > 0) {
+        const priceText = element.text().trim();
+        const price = extractPriceFromText(priceText);
+        if (price) return price;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Price extraction error:', error);
+    return null;
+  }
+}
+
+function extractPriceFromText(text: string): number | null {
+  try {
+    const pricePatterns = [
+      /(\d+(?:[.,]\d+)?)\s*(?:TL|₺|lira|Lira)/gi,
+      /(?:fiyat|price|cost|maliyet)[:\s]*(\d+(?:[.,]\d+)?)/gi,
+      /(\d+(?:[.,]\d+)?)\s*(?:₺|TL|lira)/gi,
+      /(?:₺|TL)\s*(\d+(?:[.,]\d+)?)/gi,
+      /(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:TL|₺)/gi,
+      /(\d+(?:[.,]\d+)?)\s*(?:TL|₺|lira)/gi,
+      /(\d+(?:[.,]\d+)?)/g,
+    ];
+
+    const foundPrices: number[] = [];
+
+    for (const pattern of pricePatterns) {
+      const matches = text.match(pattern);
+      if (matches) {
+        for (const match of matches) {
+          const numberMatch = match.match(/(\d+(?:[.,]\d+)?)/);
+          if (numberMatch) {
+            const price = parseFloat(numberMatch[1].replace(',', '.'));
+            if (price > 0.01 && price < 100000) {
+              foundPrices.push(price);
+            }
+          }
+        }
+      }
+    }
+
+    if (foundPrices.length > 0) {
+      foundPrices.sort((a, b) => {
+        const aScore = (a >= 1 && a <= 1000) ? 1 : 0;
+        const bScore = (b >= 1 && b <= 1000) ? 1 : 0;
+        return bScore - aScore;
+      });
+      return foundPrices[0];
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function extractTitleWithCheerio($: cheerio.CheerioAPI): string | null {
+  try {
+    const titleSelectors = [
+      'title', 'h1', 'h2', '.product-title', '.product-name',
+      '[data-testid*="title"]', '[class*="title"]', '.name', '.heading'
+    ];
+
+    for (const selector of titleSelectors) {
+      const element = $(selector);
+      if (element.length > 0) {
+        const title = element.text().trim();
+        if (title && title.length > 0 && title.length < 200) {
+          return title;
+        }
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function extractAvailabilityWithCheerio($: cheerio.CheerioAPI): string | null {
+  try {
+    const availabilitySelectors = [
+      '.stock', '.availability', '.inventory',
+      '[data-testid*="stock"]', '[class*="stock"]',
+      '.status', '.condition'
+    ];
+
+    for (const selector of availabilitySelectors) {
+      const element = $(selector);
+      if (element.length > 0) {
+        const availability = element.text().trim();
+        if (availability) {
+          return availability;
+        }
+      }
+    }
+
+    const bodyText = $('body').text().toLowerCase();
+    if (bodyText.includes('stokta') || bodyText.includes('mevcut') || bodyText.includes('available')) {
+      return 'Stokta';
+    } else if (bodyText.includes('tükendi') || bodyText.includes('out of stock') || bodyText.includes('unavailable')) {
+      return 'Tükendi';
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function extractImageWithCheerio($: cheerio.CheerioAPI): string | null {
+  try {
+    const imageSelectors = [
+      '.product-image img', '.product-photo img', '.main-image img',
+      '[data-testid*="image"] img', '.gallery img', '.slider img'
+    ];
+
+    for (const selector of imageSelectors) {
+      const element = $(selector);
+      if (element.length > 0) {
+        const src = element.attr('src') || element.attr('data-src');
+        if (src && src.startsWith('http')) {
+          return src;
+        }
+      }
+    }
+
+    const metaImage = $('meta[property="og:image"]').attr('content') ||
+                     $('meta[name="image"]').attr('content');
+    
+    if (metaImage && metaImage.startsWith('http')) {
+      return metaImage;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 // GET /api/admin/auto-scraping - Otomatik fiyat çekme işlemini başlat
 export async function GET(request: NextRequest) {
