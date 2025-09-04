@@ -6,6 +6,7 @@ import * as cheerio from 'cheerio';
 async function performScraping(url: string, selector: string, materialType: string) {
   try {
     console.log(`[PERFORM-SCRAPING] Starting for ${materialType} - ${url}`);
+    console.log(`[PERFORM-SCRAPING] Using selector: ${selector}`);
     
     // Önce doğrudan fetch dene
     try {
