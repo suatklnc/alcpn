@@ -36,6 +36,7 @@ function getTavanMalzemeleri(tavanTuru: TavanTuru): MaterialType[] {
         't_ana_tasiyici',
         'tali_120_tasiyici',
         'tali_60_tasiyici',
+        'plaka',
         'u_profili',
         'aski_teli',
         'vida',
@@ -108,6 +109,7 @@ export function getAvailableMaterials(isTuru: IsTuru): MaterialType[] {
       'celik_dubel',
       'clip_in_aski_masasi',
       'alüminyum_plaka',
+      'plaka',
     ];
   } else {
     return [
