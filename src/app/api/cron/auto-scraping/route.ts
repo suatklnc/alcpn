@@ -86,28 +86,25 @@ export async function GET(request: NextRequest) {
           
           console.log(`Updating material price for ${urlData.material_type}: ${finalPrice}`);
           
-          // Manuel API'yi kullanarak fiyat güncelle
+          // Doğrudan Supabase ile material_prices tablosunu güncelle
           try {
-            const priceUpdateResponse = await fetch(`${request.nextUrl.origin}/api/admin/update-material-price-simple`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
+            const { data: priceUpdateData, error: priceUpdateError } = await supabase
+              .from('material_prices')
+              .upsert({
                 material_type: urlData.material_type,
-                price: finalPrice,
-              }),
-            });
+                unit_price: finalPrice,
+                updated_at: new Date().toISOString(),
+              }, {
+                onConflict: 'material_type'
+              });
 
-            if (priceUpdateResponse.ok) {
-              const priceUpdateResult = await priceUpdateResponse.json();
-              console.log('Material price updated successfully via API:', priceUpdateResult);
+            if (priceUpdateError) {
+              console.error('Error updating material price directly:', priceUpdateError);
             } else {
-              const errorData = await priceUpdateResponse.json();
-              console.error('Error updating material price via API:', errorData);
+              console.log('Material price updated successfully directly:', priceUpdateData);
             }
           } catch (error) {
-            console.error('Error calling price update API:', error);
+            console.error('Error updating material price directly:', error);
           }
         } else {
           console.log(`Skipping price update for ${urlData.material_type}: success=${scrapingResult.success}, price=${scrapingResult.data?.price}`);
