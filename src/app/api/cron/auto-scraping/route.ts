@@ -41,8 +41,8 @@ async function processScrapingInBackground() {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Önce tüm aktif URL'leri kontrol et
-    const { data: allActiveUrls } = await supabase
+    // Önce tüm aktif URL'leri kontrol et (service client ile)
+    const { data: allActiveUrls } = await supabaseService
       .from('custom_scraping_urls')
       .select('*')
       .eq('auto_scraping_enabled', true)
@@ -51,8 +51,8 @@ async function processScrapingInBackground() {
     // console.log('All active auto-scraping URLs:', allActiveUrls);
     // console.log('Current time:', new Date().toISOString());
 
-    // Aktif URL'leri çek - zaman kontrolü ile
-    const { data: urlsToScrape, error: fetchError } = await supabase
+    // Aktif URL'leri çek - zaman kontrolü ile (service client ile)
+    const { data: urlsToScrape, error: fetchError } = await supabaseService
       .from('custom_scraping_urls')
       .select('*')
       .eq('auto_scraping_enabled', true)
