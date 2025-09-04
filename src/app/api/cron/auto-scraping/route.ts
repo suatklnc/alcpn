@@ -457,20 +457,19 @@ function extractPriceFromText(text: string): number | null {
   try {
     console.log(`[EXTRACT-PRICE] Input text: "${text}"`);
     
-    // Turkish price patterns - more comprehensive
+    // Turkish price patterns - SIMPLIFIED APPROACH
     const pricePatterns = [
-      // Turkish currency patterns
-      /(\d+(?:[.,]\d+)?)\s*(?:TL|₺|lira|Lira)/gi,
-      /(?:fiyat|price|cost|maliyet)[:\s]*(\d+(?:[.,]\d+)?)/gi,
-      /(\d+(?:[.,]\d+)?)\s*(?:₺|TL|lira)/gi,
-      /(?:₺|TL)\s*(\d+(?:[.,]\d+)?)/gi,
+      // Turkish format: 3.900,00 TL - PRIORITY
+      /(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)\s*(?:TL|₺)/gi,
       
-      // Price with separators
-      /(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:TL|₺)/gi,
-      /(\d+(?:[.,]\d+)?)\s*(?:TL|₺|lira)/gi,
+      // European format: 3900,00 TL
+      /(\d+(?:,\d{2})?)\s*(?:TL|₺)/gi,
       
-      // Just numbers (be more careful with this)
-      /(\d+(?:[.,]\d+)?)/g,
+      // Simple format: 3900 TL
+      /(\d+)\s*(?:TL|₺)/gi,
+      
+      // Just numbers with separators
+      /(\d+(?:[.,]\d+)*)/g,
     ];
 
     const foundPrices: number[] = [];
@@ -480,7 +479,8 @@ function extractPriceFromText(text: string): number | null {
       if (matches) {
         console.log(`[EXTRACT-PRICE] Pattern matches:`, matches);
         for (const match of matches) {
-          const numberMatch = match.match(/(\d+(?:[.,]\d+)?)/);
+          // Extract the full number part (including dots and commas)
+          const numberMatch = match.match(/(\d+(?:[.,]\d+)*)/);
           if (numberMatch) {
             let priceStr = numberMatch[1];
             console.log(`[EXTRACT-PRICE] Original price string: "${priceStr}"`);
@@ -514,15 +514,10 @@ function extractPriceFromText(text: string): number | null {
 
     console.log(`[EXTRACT-PRICE] All found prices:`, foundPrices);
 
-    // Return the most likely price (usually the first reasonable one)
+    // Return the most likely price (usually the highest reasonable one)
     if (foundPrices.length > 0) {
-      // Sort by likelihood (prefer prices that look like real product prices)
-      foundPrices.sort((a, b) => {
-        // Prefer prices between 1-1000 TL (common product range)
-        const aScore = (a >= 1 && a <= 1000) ? 1 : 0;
-        const bScore = (b >= 1 && b <= 1000) ? 1 : 0;
-        return bScore - aScore;
-      });
+      // Sort by price value (highest first) - prefer higher prices for products
+      foundPrices.sort((a, b) => b - a);
       console.log(`[EXTRACT-PRICE] Final selected price: ${foundPrices[0]}`);
       return foundPrices[0];
     }
