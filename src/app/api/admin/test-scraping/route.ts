@@ -484,7 +484,19 @@ function extractPriceFromText(text: string): number | null {
         for (const match of matches) {
           const numberMatch = match.match(/(\d+(?:[.,]\d+)?)/);
           if (numberMatch) {
-            const price = parseFloat(numberMatch[1].replace(',', '.'));
+            let priceStr = numberMatch[1];
+            
+            // Turkish number format: 3.900,00 -> 3900.00
+            // Check if it's Turkish format (dot as thousands separator, comma as decimal)
+            if (priceStr.includes('.') && priceStr.includes(',')) {
+              // Turkish format: 3.900,00 -> 3900.00
+              priceStr = priceStr.replace(/\./g, '').replace(',', '.');
+            } else if (priceStr.includes(',')) {
+              // European format: 3900,00 -> 3900.00
+              priceStr = priceStr.replace(',', '.');
+            }
+            
+            const price = parseFloat(priceStr);
             // Reasonable price range check (0.01 to 100000)
             if (price > 0.01 && price < 100000) {
               foundPrices.push(price);
