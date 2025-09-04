@@ -142,15 +142,32 @@ function extractPriceWithCheerio($: cheerio.CheerioAPI, selector: string): numbe
       if (price) return price;
     }
 
-    // Common price selectors
+    // If selector doesn't work, try common price selectors
     const commonPriceSelectors = [
+      // Common price classes
       '.price', '.product-price', '.current-price', '.sale-price', '.final-price',
       '.price-current', '.price-now', '.price-value', '.price-amount',
       '.cost', '.amount', '.value', '.fiyat', '.tutar',
+      
+      // IDs
       '#price', '#product-price', '#current-price', '#final-price',
+      
+      // Data attributes
       '[data-price]', '[data-testid*="price"]', '[data-testid*="Price"]',
       '[class*="price"]', '[class*="Price"]', '[class*="PRICE"]',
-      '[data-value]', '[data-amount]', '[data-cost]'
+      '[data-value]', '[data-amount]', '[data-cost]',
+      
+      // E-commerce specific
+      '.price-box', '.price-container', '.price-wrapper',
+      '.product-cost', '.item-price', '.listing-price',
+      '.offer-price', '.discount-price', '.special-price',
+      
+      // Turkish e-commerce
+      '.urun-fiyat', '.fiyat-bilgisi', '.fiyat-detay',
+      '.satis-fiyati', '.indirimli-fiyat', '.kampanya-fiyat',
+      
+      // Generic number patterns
+      '.number', '.numeric', '.currency', '.money'
     ];
 
     for (const commonSelector of commonPriceSelectors) {
@@ -160,6 +177,16 @@ function extractPriceWithCheerio($: cheerio.CheerioAPI, selector: string): numbe
         const price = extractPriceFromText(priceText);
         if (price) return price;
       }
+    }
+
+    // Try to find price in meta tags
+    const metaPrice = $('meta[property="product:price:amount"]').attr('content') ||
+                     $('meta[property="og:price:amount"]').attr('content') ||
+                     $('meta[name="price"]').attr('content');
+    
+    if (metaPrice) {
+      const price = extractPriceFromText(metaPrice);
+      if (price) return price;
     }
 
     return null;
@@ -420,6 +447,7 @@ export async function GET(request: NextRequest) {
           url_id: urlData.id,
           material_type: urlData.material_type,
           url: urlData.url,
+          selector: urlData.selector,
           success: scrapingResult.success,
           price: scrapingResult.success && scrapingResult.data?.price ? 
             (typeof scrapingResult.data.price === 'number' ? scrapingResult.data.price * (urlData.price_multiplier || 1) : null) : null,
@@ -597,6 +625,7 @@ export async function POST(request: NextRequest) {
           url_id: urlData.id,
           material_type: urlData.material_type,
           url: urlData.url,
+          selector: urlData.selector,
           success: scrapingResult.success,
           price: scrapingResult.success && scrapingResult.data?.price ? 
             (typeof scrapingResult.data.price === 'number' ? scrapingResult.data.price * (urlData.price_multiplier || 1) : null) : null,

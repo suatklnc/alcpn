@@ -131,7 +131,7 @@ export default function URLTesterPage() {
   // Log fonksiyonları
   const addLog = useCallback((type: 'info' | 'success' | 'warning' | 'error', message: string, details?: Record<string, unknown>) => {
     const newLog = {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date(),
       type,
       message,
@@ -456,15 +456,37 @@ export default function URLTesterPage() {
       if (response.ok) {
         console.log('Auto-scraping result:', result);
         
+        // Her URL için ayrı log'lar ekle
+        if (result.results && Array.isArray(result.results)) {
+          result.results.forEach((urlResult: Record<string, unknown>) => {
+            if (urlResult.success) {
+              addLog('success', `✅ ${urlResult.material_type}: Fiyat başarıyla çekildi (₺${urlResult.price})`, {
+                url: urlResult.url,
+                materialType: urlResult.material_type,
+                price: urlResult.price,
+                responseTime: `${urlResult.response_time_ms}ms`
+              });
+            } else {
+              addLog('error', `❌ ${urlResult.material_type}: ${urlResult.error}`, {
+                url: urlResult.url,
+                materialType: urlResult.material_type,
+                error: urlResult.error,
+                responseTime: `${urlResult.response_time_ms}ms`,
+                selector: urlResult.selector || 'Bilinmiyor'
+              });
+            }
+          });
+        }
+
         if (result.success_count > 0) {
-          addLog('success', `Otomatik fiyat çekme başarılı! ${result.success_count} başarılı, ${result.error_count} hata`, {
+          addLog('success', `🎉 Otomatik fiyat çekme başarılı! ${result.success_count} başarılı, ${result.error_count} hata`, {
             responseTime: `${responseTime}ms`,
-            results: result.results
+            totalResults: result.results?.length || 0
           });
         } else {
-          addLog('warning', `Otomatik fiyat çekme tamamlandı ancak hiç başarılı sonuç yok. ${result.error_count} hata`, {
+          addLog('warning', `⚠️ Otomatik fiyat çekme tamamlandı ancak hiç başarılı sonuç yok. ${result.error_count} hata`, {
             responseTime: `${responseTime}ms`,
-            results: result.results
+            totalResults: result.results?.length || 0
           });
         }
         
@@ -716,14 +738,19 @@ export default function URLTesterPage() {
                   )}
                 </button>
 
-                {result && result.success && materialType && (
+                {result && result.success && (
                   <div className="flex space-x-2">
                     <button
                       onClick={handleSaveUrl}
-                      className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center"
+                      disabled={!materialType}
+                      className={`px-4 py-2 rounded-md flex items-center ${
+                        materialType 
+                          ? 'bg-green-600 text-white hover:bg-green-700' 
+                          : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      }`}
                     >
                       <PlusIcon className="h-4 w-4 mr-2" />
-                      Kaydet
+                      {materialType ? 'Kaydet' : 'Malzeme Seçin'}
                     </button>
                     <button
                       onClick={() => handleSetAsDefaultPriceFromResult()}
