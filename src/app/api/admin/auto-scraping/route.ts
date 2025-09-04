@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import * as cheerio from 'cheerio';
 
 // Scraping fonksiyonu - internal fetch yerine doğrudan kullan
@@ -563,7 +563,11 @@ function extractImageWithCheerio($: cheerio.CheerioAPI): string | null {
 // GET /api/admin/auto-scraping - Otomatik fiyat çekme işlemini başlat
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // Service role client kullan - RLS bypass için
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     
     // Geçici olarak development için authentication'ı devre dışı bırak
     // TODO: Production'da gerçek authentication kullan
@@ -748,7 +752,11 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/auto-scraping - Belirli URL'leri manuel olarak otomatik fiyat çekme için tetikle
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // Service role client kullan - RLS bypass için
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     
     // Geçici olarak development için authentication'ı devre dışı bırak
     // TODO: Production'da gerçek authentication kullan
