@@ -45,8 +45,7 @@ export async function POST(request: NextRequest) {
                 'Connection': 'keep-alive',
                 'Upgrade-Insecure-Requests': '1',
               },
-              signal: controller.signal,
-              timeout: 10000
+              signal: controller.signal
             });
             
             clearTimeout(timeoutId);
