@@ -131,7 +131,7 @@ async function parseHtml(html: string, selector: string, materialType: string) {
 // Helper functions (test-scraping'den kopyalandı)
 function extractPriceWithCheerio($: cheerio.CheerioAPI, selector: string): number | null {
   try {
-    console.log(`[EXTRACT-PRICE] Trying selector: ${selector}`);
+    console.log(`[EXTRACT-PRICE] Trying selector: "${selector}"`);
     
     // Multiple selectors support - split by comma and try each one
     const selectors = selector.split(',').map(s => s.trim()).filter(s => s.length > 0);
@@ -193,17 +193,91 @@ function extractPriceWithCheerio($: cheerio.CheerioAPI, selector: string): numbe
 
     // Try to find price in meta tags
     const metaPrice = $('meta[property="product:price:amount"]').attr('content') ||
+                     $('meta[name="price"]').attr('content') ||
                      $('meta[property="og:price:amount"]').attr('content') ||
-                     $('meta[name="price"]').attr('content');
-    
+                     $('meta[property="product:price"]').attr('content') ||
+                     $('meta[name="twitter:data1"]').attr('content');
+
     if (metaPrice) {
       const price = extractPriceFromText(metaPrice);
       if (price) return price;
     }
 
+    // Try to find price in JSON-LD structured data
+    const jsonLdScripts = $('script[type="application/ld+json"]');
+    for (let i = 0; i < jsonLdScripts.length; i++) {
+      try {
+        const jsonText = $(jsonLdScripts[i]).html();
+        if (jsonText) {
+          const jsonData = JSON.parse(jsonText);
+          const price = extractPriceFromJsonLd(jsonData);
+          if (price) return price;
+        }
+      } catch {
+        // Ignore JSON parsing errors
+      }
+    }
+
+    // Last resort: search for price patterns in all text
+    const bodyText = $('body').text();
+    const price = extractPriceFromText(bodyText);
+    if (price) return price;
+
     return null;
   } catch (error) {
     console.error('Price extraction error:', error);
+    return null;
+  }
+}
+
+function extractPriceFromJsonLd(jsonData: unknown): number | null {
+  try {
+    // Handle arrays
+    if (Array.isArray(jsonData)) {
+      for (const item of jsonData) {
+        const price = extractPriceFromJsonLd(item);
+        if (price) return price;
+      }
+      return null;
+    }
+
+    // Handle objects
+    if (typeof jsonData === 'object' && jsonData !== null) {
+      const data = jsonData as Record<string, unknown>;
+      // Check for price fields
+      const priceFields = [
+        'price', 'offers', 'lowPrice', 'highPrice', 'priceRange',
+        'priceSpecification', 'value', 'amount', 'cost'
+      ];
+
+      for (const field of priceFields) {
+        if (data[field]) {
+          if (typeof data[field] === 'number') {
+            return data[field] as number;
+          } else if (typeof data[field] === 'string') {
+            const price = extractPriceFromText(data[field] as string);
+            if (price) return price;
+          } else if (typeof data[field] === 'object' && data[field] !== null) {
+            // Handle offers object
+            const offerData = data[field] as Record<string, unknown>;
+            if (offerData.price) {
+              if (typeof offerData.price === 'number') {
+                return offerData.price as number;
+              } else if (typeof offerData.price === 'string') {
+                const price = extractPriceFromText(offerData.price as string);
+                if (price) return price;
+              }
+            }
+            // Recursive search
+            const price = extractPriceFromJsonLd(data[field]);
+            if (price) return price;
+          }
+        }
+      }
+    }
+
+    return null;
+  } catch {
     return null;
   }
 }
