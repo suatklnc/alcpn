@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
     
     const { data, error } = await supabase
       .from('material_prices')
-      .select('material_type, unit_price')
+      .select('*')
       .order('material_type');
 
     if (error) {
@@ -18,13 +18,7 @@ export async function GET() {
       );
     }
 
-    // Convert array to object for easy lookup
-    const pricesMap = data.reduce((acc, item) => {
-      acc[item.material_type] = item.unit_price;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return NextResponse.json(pricesMap);
+    return NextResponse.json({ data });
   } catch (error) {
     console.error('Material prices API error:', error);
     return NextResponse.json(
