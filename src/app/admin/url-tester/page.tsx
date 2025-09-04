@@ -117,6 +117,32 @@ export default function URLTesterPage() {
   const [customInterval, setCustomInterval] = useState<number>(5); // Saniye cinsinden
   const [intervalUnit, setIntervalUnit] = useState<'seconds' | 'minutes' | 'hours'>('seconds');
   const [isAutoScrapingActive, setIsAutoScrapingActive] = useState<boolean>(false);
+  
+  // Gelişmiş log sistemi
+  const [logs, setLogs] = useState<Array<{
+    id: string;
+    timestamp: Date;
+    type: 'info' | 'success' | 'warning' | 'error';
+    message: string;
+    details?: Record<string, unknown>;
+  }>>([]);
+  const [showLogs, setShowLogs] = useState(false);
+
+  // Log fonksiyonları
+  const addLog = useCallback((type: 'info' | 'success' | 'warning' | 'error', message: string, details?: Record<string, unknown>) => {
+    const newLog = {
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      type,
+      message,
+      details
+    };
+    setLogs(prev => [newLog, ...prev].slice(0, 100)); // Son 100 log'u tut
+  }, []);
+
+  const clearLogs = useCallback(() => {
+    setLogs([]);
+  }, []);
 
   // Authentication check
   useEffect(() => {
@@ -150,12 +176,16 @@ export default function URLTesterPage() {
 
   const handleTest = async () => {
     if (!url || !selector) {
+      addLog('warning', 'URL ve CSS selector gerekli!');
       alert('URL ve CSS selector gerekli!');
       return;
     }
 
     setIsLoading(true);
+    addLog('info', `Test başlatılıyor: ${url}`, { selector, materialType });
+    
     try {
+      const startTime = Date.now();
       const response = await fetch('/api/admin/test-scraping', {
         method: 'POST',
         headers: {
@@ -168,12 +198,27 @@ export default function URLTesterPage() {
         }),
       });
 
+      const responseTime = Date.now() - startTime;
       const testResult: TestResult = await response.json();
+      
+      if (testResult.success) {
+        addLog('success', `Test başarılı! Fiyat: ₺${testResult.data?.price}`, {
+          responseTime: `${responseTime}ms`,
+          data: testResult.data
+        });
+      } else {
+        addLog('error', `Test başarısız: ${testResult.error}`, {
+          responseTime: `${responseTime}ms`,
+          error: testResult.error
+        });
+      }
+      
       setResult(testResult);
 
       // Test geçmişi kaldırıldı - sadece kaydedilmiş URL'ler kullanılacak
     } catch (error) {
       console.error('URL test error:', error);
+      addLog('error', 'Test sırasında hata oluştu', { error: error instanceof Error ? error.message : 'Bilinmeyen hata' });
       setResult({
         success: false,
         error: 'Test sırasında hata oluştu',
@@ -397,25 +442,49 @@ export default function URLTesterPage() {
 
   const handleRunAutoScraping = async () => {
     setIsAutoScrapingRunning(true);
+    addLog('info', 'Otomatik fiyat çekme başlatılıyor...');
+    
     try {
+      const startTime = Date.now();
       const response = await fetch('/api/admin/auto-scraping', {
         method: 'GET',
       });
 
+      const responseTime = Date.now() - startTime;
       const result = await response.json();
       
       if (response.ok) {
         console.log('Auto-scraping result:', result);
+        
+        if (result.success_count > 0) {
+          addLog('success', `Otomatik fiyat çekme başarılı! ${result.success_count} başarılı, ${result.error_count} hata`, {
+            responseTime: `${responseTime}ms`,
+            results: result.results
+          });
+        } else {
+          addLog('warning', `Otomatik fiyat çekme tamamlandı ancak hiç başarılı sonuç yok. ${result.error_count} hata`, {
+            responseTime: `${responseTime}ms`,
+            results: result.results
+          });
+        }
+        
         // Sadece hata varsa alert göster
         if (result.error_count > 0) {
           alert(`Otomatik fiyat çekme tamamlandı!\n${result.message}`);
         }
         fetchSavedUrls();
       } else {
+        addLog('error', `Otomatik fiyat çekme başarısız: ${result.error}`, {
+          responseTime: `${responseTime}ms`,
+          error: result.error
+        });
         alert(`Otomatik fiyat çekme hatası: ${result.error}`);
       }
     } catch (error) {
       console.error('Error running auto-scraping:', error);
+      addLog('error', 'Otomatik fiyat çekme sırasında hata oluştu', { 
+        error: error instanceof Error ? error.message : 'Bilinmeyen hata' 
+      });
       alert('Otomatik fiyat çekme sırasında hata oluştu');
     } finally {
       setIsAutoScrapingRunning(false);
@@ -1061,6 +1130,97 @@ export default function URLTesterPage() {
 
         {/* Test Geçmişi kaldırıldı - sadece Kaydedilmiş URL'ler kullanılıyor */}
       </div>
+
+      {/* Log Panel */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <button
+          onClick={() => setShowLogs(!showLogs)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center text-sm font-medium shadow-lg"
+        >
+          <DocumentTextIcon className="h-4 w-4 mr-2" />
+          Log&apos;lar ({logs.length})
+        </button>
+      </div>
+
+      {/* Log Modal */}
+      {showLogs && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-96 flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">Sistem Log&apos;ları</h3>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={clearLogs}
+                  className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1 rounded"
+                >
+                  Temizle
+                </button>
+                <button
+                  onClick={() => setShowLogs(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {logs.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  Henüz log yok
+                </div>
+              ) : (
+                logs.map((log) => (
+                  <div
+                    key={log.id}
+                    className={`p-3 rounded-lg border-l-4 ${
+                      log.type === 'success' 
+                        ? 'bg-green-50 border-green-400' 
+                        : log.type === 'error'
+                        ? 'bg-red-50 border-red-400'
+                        : log.type === 'warning'
+                        ? 'bg-yellow-50 border-yellow-400'
+                        : 'bg-blue-50 border-blue-400'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className={`text-xs font-medium ${
+                            log.type === 'success' 
+                              ? 'text-green-800' 
+                              : log.type === 'error'
+                              ? 'text-red-800'
+                              : log.type === 'warning'
+                              ? 'text-yellow-800'
+                              : 'text-blue-800'
+                          }`}>
+                            {log.type.toUpperCase()}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {log.timestamp.toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-800 mt-1">{log.message}</p>
+                        {log.details && (
+                          <details className="mt-2">
+                            <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">
+                              Detaylar
+                            </summary>
+                            <pre className="text-xs text-gray-600 mt-1 bg-gray-100 p-2 rounded overflow-x-auto">
+                              {JSON.stringify(log.details, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
