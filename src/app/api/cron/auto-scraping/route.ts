@@ -225,7 +225,12 @@ function parseHtml(html: string, selector: string, materialType: string) {
     console.log(`[PARSE-HTML] Parsing HTML for ${materialType} with selector: ${selector}`);
     const $ = cheerio.load(html);
     
-    const extractedData: any = {
+    const extractedData: {
+      price: number | null;
+      title: string | null;
+      availability: string | null;
+      image: string | null;
+    } = {
       price: null,
       title: null,
       availability: null,
