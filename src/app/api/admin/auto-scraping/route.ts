@@ -284,13 +284,21 @@ function extractPriceFromJsonLd(jsonData: unknown): number | null {
 
 function extractPriceFromText(text: string): number | null {
   try {
+    console.log(`[EXTRACT-PRICE] Input text: "${text}"`);
+    
+    // Turkish price patterns - more comprehensive
     const pricePatterns = [
+      // Turkish currency patterns
       /(\d+(?:[.,]\d+)?)\s*(?:TL|₺|lira|Lira)/gi,
       /(?:fiyat|price|cost|maliyet)[:\s]*(\d+(?:[.,]\d+)?)/gi,
       /(\d+(?:[.,]\d+)?)\s*(?:₺|TL|lira)/gi,
       /(?:₺|TL)\s*(\d+(?:[.,]\d+)?)/gi,
+      
+      // Price with separators
       /(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:TL|₺)/gi,
       /(\d+(?:[.,]\d+)?)\s*(?:TL|₺|lira)/gi,
+      
+      // Just numbers (be more careful with this)
       /(\d+(?:[.,]\d+)?)/g,
     ];
 
@@ -299,29 +307,59 @@ function extractPriceFromText(text: string): number | null {
     for (const pattern of pricePatterns) {
       const matches = text.match(pattern);
       if (matches) {
+        console.log(`[EXTRACT-PRICE] Pattern matches:`, matches);
         for (const match of matches) {
           const numberMatch = match.match(/(\d+(?:[.,]\d+)?)/);
           if (numberMatch) {
-            const price = parseFloat(numberMatch[1].replace(',', '.'));
+            let priceStr = numberMatch[1];
+            console.log(`[EXTRACT-PRICE] Original price string: "${priceStr}"`);
+            
+            // Turkish number format: 3.900,00 -> 3900.00
+            // Check if it's Turkish format (dot as thousands separator, comma as decimal)
+            if (priceStr.includes('.') && priceStr.includes(',')) {
+              // Turkish format: 3.900,00 -> 3900.00
+              priceStr = priceStr.replace(/\./g, '').replace(',', '.');
+              console.log(`[EXTRACT-PRICE] Turkish format detected, converted to: "${priceStr}"`);
+            } else if (priceStr.includes(',')) {
+              // European format: 3900,00 -> 3900.00
+              priceStr = priceStr.replace(',', '.');
+              console.log(`[EXTRACT-PRICE] European format detected, converted to: "${priceStr}"`);
+            }
+            
+            const price = parseFloat(priceStr);
+            console.log(`[EXTRACT-PRICE] Parsed price: ${price}`);
+            
+            // Reasonable price range check (0.01 to 100000)
             if (price > 0.01 && price < 100000) {
               foundPrices.push(price);
+              console.log(`[EXTRACT-PRICE] Added to found prices: ${price}`);
+            } else {
+              console.log(`[EXTRACT-PRICE] Price ${price} outside range, skipped`);
             }
           }
         }
       }
     }
 
+    console.log(`[EXTRACT-PRICE] All found prices:`, foundPrices);
+
+    // Return the most likely price (usually the first reasonable one)
     if (foundPrices.length > 0) {
+      // Sort by likelihood (prefer prices that look like real product prices)
       foundPrices.sort((a, b) => {
+        // Prefer prices between 1-1000 TL (common product range)
         const aScore = (a >= 1 && a <= 1000) ? 1 : 0;
         const bScore = (b >= 1 && b <= 1000) ? 1 : 0;
         return bScore - aScore;
       });
+      console.log(`[EXTRACT-PRICE] Final selected price: ${foundPrices[0]}`);
       return foundPrices[0];
     }
 
+    console.log(`[EXTRACT-PRICE] No valid prices found`);
     return null;
-  } catch {
+  } catch (error) {
+    console.log(`[EXTRACT-PRICE] Error:`, error);
     return null;
   }
 }
