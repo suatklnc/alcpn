@@ -149,7 +149,9 @@ export class CalculationEngine {
       
       // Beyaz alçıpan katsayısını duvar türüne göre ayarla
       if (materialType === 'beyaz_alcipan' && isTuru === 'duvar') {
-        if (altTuru === 'cift_kat_cift_iskelet') {
+        if (altTuru === 'tek_kat_tek_iskelet') {
+          coefficient = 0.73; // Tek kat tek iskelet için 0.73
+        } else if (altTuru === 'cift_kat_cift_iskelet') {
           coefficient = 1.47; // Çift kat çift iskelet için 1.47
         }
       }
@@ -241,7 +243,9 @@ export class CalculationEngine {
         
         // Beyaz alçıpan katsayısını duvar türüne göre ayarla
         if (materialType === 'beyaz_alcipan' && jobType === 'duvar') {
-          if (subType === 'cift_kat_cift_iskelet') {
+          if (subType === 'tek_kat_tek_iskelet') {
+            coefficient = 0.73; // Tek kat tek iskelet için 0.73
+          } else if (subType === 'cift_kat_cift_iskelet') {
             coefficient = 1.47; // Çift kat çift iskelet için 1.47
           }
         }
