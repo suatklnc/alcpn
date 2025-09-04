@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
 // GET /api/cron/auto-scraping-simple - Cron-job.org için basit endpoint
 export async function GET() {
@@ -35,7 +34,7 @@ async function processSimpleScraping() {
     console.log('Simple background scraping started at:', new Date().toISOString());
     
     // Sadece service role client kullan - RLS bypass için
-    const supabaseService = createServiceClient(
+    const supabaseService = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
