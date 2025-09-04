@@ -108,6 +108,8 @@ export default function URLTesterPage() {
   const [savedUrls, setSavedUrls] = useState<SavedUrl[]>([]);
   const [showSavedUrls, setShowSavedUrls] = useState(false);
   const [, setSelectedUrl] = useState<SavedUrl | null>(null);
+  const [editingSelector, setEditingSelector] = useState<string | null>(null);
+  const [editingSelectorValue, setEditingSelectorValue] = useState('');
   
   // Auto-scraping states
   const [autoScrapingEnabled, setAutoScrapingEnabled] = useState<boolean>(false);
@@ -437,6 +439,42 @@ export default function URLTesterPage() {
     } catch (error) {
       console.error('Error updating auto-scraping settings:', error);
       alert('Otomatik fiyat çekme ayarları güncellenirken hata oluştu');
+    }
+  };
+
+  const handleStartEditingSelector = (savedUrl: SavedUrl) => {
+    setEditingSelector(savedUrl.id);
+    setEditingSelectorValue(savedUrl.selector);
+  };
+
+  const handleCancelEditingSelector = () => {
+    setEditingSelector(null);
+    setEditingSelectorValue('');
+  };
+
+  const handleSaveSelector = async (savedUrl: SavedUrl) => {
+    try {
+      const response = await fetch(`/api/admin/custom-scraping-urls/${savedUrl.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          selector: editingSelectorValue,
+        }),
+      });
+
+      if (response.ok) {
+        alert('Selector güncellendi!');
+        setEditingSelector(null);
+        setEditingSelectorValue('');
+        fetchSavedUrls();
+      } else {
+        alert('Selector güncellenirken hata oluştu');
+      }
+    } catch (error) {
+      console.error('Error updating selector:', error);
+      alert('Selector güncellenirken hata oluştu');
     }
   };
 
@@ -1046,6 +1084,64 @@ export default function URLTesterPage() {
                               </div>
                           </div>
                         )}
+                        </div>
+
+                        {/* Selector Düzenleme */}
+                        <div className="bg-blue-50 rounded-xl p-5">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></div>
+                              <span className="font-semibold text-gray-800 text-base">CSS Selector</span>
+                            </div>
+                            <button
+                              onClick={() => handleStartEditingSelector(savedUrl)}
+                              className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded-lg transition-colors duration-200"
+                              title="Selector Düzenle"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          {editingSelector === savedUrl.id ? (
+                            <div className="space-y-3">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  CSS Selector
+                                </label>
+                                <textarea
+                                  value={editingSelectorValue}
+                                  onChange={(e) => setEditingSelectorValue(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                  rows={3}
+                                  placeholder=".price, #price, [data-price]..."
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Virgülle ayırarak birden fazla selector kullanabilirsiniz
+                                </p>
+                              </div>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => handleSaveSelector(savedUrl)}
+                                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium"
+                                >
+                                  Kaydet
+                                </button>
+                                <button
+                                  onClick={handleCancelEditingSelector}
+                                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors duration-200 text-sm font-medium"
+                                >
+                                  İptal
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-white rounded-lg p-4 border border-gray-200">
+                              <div className="text-sm text-gray-600 mb-2">Mevcut Selector:</div>
+                              <div className="font-mono text-sm bg-gray-100 p-2 rounded border break-all">
+                                {savedUrl.selector}
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Auto-scraping Section */}
