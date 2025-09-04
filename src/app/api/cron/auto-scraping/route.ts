@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import * as cheerio from 'cheerio';
 
 // GET /api/cron/auto-scraping - Cron job için otomatik fiyat çekme
@@ -10,6 +11,12 @@ export async function GET(request: NextRequest) {
     console.log('Cron job triggered at:', new Date().toISOString());
 
     const supabase = await createClient();
+    
+    // Service role client for RLS bypass
+    const supabaseService = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // Önce tüm aktif URL'leri kontrol et
     const { data: allActiveUrls } = await supabase
@@ -86,9 +93,9 @@ export async function GET(request: NextRequest) {
           
           console.log(`Updating material price for ${urlData.material_type}: ${finalPrice}`);
           
-          // Doğrudan Supabase ile material_prices tablosunu güncelle
+          // Doğrudan Supabase ile material_prices tablosunu güncelle (RLS bypass)
           try {
-            const { data: priceUpdateData, error: priceUpdateError } = await supabase
+            const { data: priceUpdateData, error: priceUpdateError } = await supabaseService
               .from('material_prices')
               .upsert({
                 material_type: urlData.material_type,
