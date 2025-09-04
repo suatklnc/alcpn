@@ -68,6 +68,13 @@ interface TestResult {
   message?: string;
   html_preview?: string;
   debug_info?: Record<string, unknown>;
+  possible_prices?: Array<{
+    selector: string;
+    price: number;
+    textContent: string;
+    elementCount: number;
+    source: 'provided' | 'common' | 'meta' | 'jsonld';
+  }>;
 }
 
 interface SavedUrl {
@@ -103,6 +110,13 @@ export default function URLTesterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
   const [priceMultiplier, setPriceMultiplier] = useState<number>(1);
+  const [selectedPrice, setSelectedPrice] = useState<{
+    selector: string;
+    price: number;
+    textContent: string;
+    elementCount: number;
+    source: 'provided' | 'common' | 'meta' | 'jsonld';
+  } | null>(null);
   // Test geçmişi kaldırıldı - sadece kaydedilmiş URL'ler kullanılacak
   const [savedUrls, setSavedUrls] = useState<SavedUrl[]>([]);
   const [showSavedUrls, setShowSavedUrls] = useState(false);
@@ -211,6 +225,13 @@ export default function URLTesterPage() {
       }
       
       setResult(testResult);
+      
+      // Eğer olası fiyatlar varsa, ilkini otomatik seç
+      if (testResult.possible_prices && testResult.possible_prices.length > 0) {
+        setSelectedPrice(testResult.possible_prices[0]);
+      } else {
+        setSelectedPrice(null);
+      }
 
       // Test geçmişi kaldırıldı - sadece kaydedilmiş URL'ler kullanılacak
     } catch (error) {
@@ -237,6 +258,11 @@ export default function URLTesterPage() {
       return;
     }
 
+    if (!selectedPrice) {
+      alert('Lütfen bir fiyat seçin!');
+      return;
+    }
+
     // Aynı URL zaten kayıtlı mı kontrol et
     const existingUrl = savedUrls.find(savedUrl => 
       savedUrl.url === url && savedUrl.material_type === materialType
@@ -257,9 +283,15 @@ export default function URLTesterPage() {
         },
         body: JSON.stringify({
           url,
-          selector,
+          selector: selectedPrice.selector, // Seçilen fiyatın selector'ını kullan
           material_type: materialType,
-          test_result: result,
+          test_result: {
+            ...result,
+            data: {
+              ...result.data,
+              price: selectedPrice.price // Seçilen fiyatı kullan
+            }
+          },
           last_tested_at: new Date().toISOString(),
           auto_scraping_enabled: autoScrapingEnabled,
           auto_scraping_interval_hours: autoScrapingInterval,
@@ -316,12 +348,12 @@ export default function URLTesterPage() {
   };
 
   const handleSetAsDefaultPriceFromResult = async () => {
-    if (!result || !result.success || !result.data?.price || !materialType) {
-      alert('Geçerli bir test sonucu ve malzeme türü gerekli!');
+    if (!result || !result.success || !selectedPrice || !materialType) {
+      alert('Geçerli bir test sonucu, seçilen fiyat ve malzeme türü gerekli!');
       return;
     }
 
-    const originalPrice = result.data.price;
+    const originalPrice = selectedPrice.price;
     const finalPrice = originalPrice * priceMultiplier;
 
     if (confirm(`${MATERIAL_NAMES[materialType]} için varsayılan fiyatı ₺${originalPrice} × ${priceMultiplier} = ₺${finalPrice.toFixed(2)} olarak ayarlamak istediğinizden emin misiniz?`)) {
@@ -769,27 +801,29 @@ export default function URLTesterPage() {
                   )}
                 </button>
 
-                {result && result.success && (
+                {result && (result.success || (result.possible_prices && result.possible_prices.length > 0)) && (
                   <div className="flex space-x-2">
                     <button
                       onClick={handleSaveUrl}
-                      disabled={!materialType}
+                      disabled={!materialType || !selectedPrice}
                       className={`px-4 py-2 rounded-md flex items-center ${
-                        materialType 
+                        materialType && selectedPrice
                           ? 'bg-green-600 text-white hover:bg-green-700' 
                           : 'bg-gray-400 text-gray-200 cursor-not-allowed'
                       }`}
                     >
                       <PlusIcon className="h-4 w-4 mr-2" />
-                      {materialType ? 'Kaydet' : 'Malzeme Seçin'}
+                      {!materialType ? 'Malzeme Seçin' : !selectedPrice ? 'Fiyat Seçin' : 'Kaydet'}
                     </button>
-                    <button
-                      onClick={() => handleSetAsDefaultPriceFromResult()}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
-                    >
-                      <StarIcon className="h-4 w-4 mr-2" />
-                      Varsayılan Fiyat Yap
-                    </button>
+                    {selectedPrice && (
+                      <button
+                        onClick={() => handleSetAsDefaultPriceFromResult()}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
+                      >
+                        <StarIcon className="h-4 w-4 mr-2" />
+                        Varsayılan Fiyat Yap
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -809,7 +843,6 @@ export default function URLTesterPage() {
                       <span className="text-green-800 font-medium">Test Başarılı</span>
                     </div>
                     <div className="space-y-2 text-sm text-gray-800">
-                      <div><strong>Fiyat:</strong> ₺{result.data?.price}</div>
                       <div><strong>Başlık:</strong> {result.data?.title}</div>
                       <div><strong>Süre:</strong> {result.response_time_ms}ms</div>
                     </div>
@@ -818,7 +851,56 @@ export default function URLTesterPage() {
                         {result.message}
                       </div>
                     )}
-                    {materialType && (
+
+                    {/* Olası Fiyatlar Listesi */}
+                    {result.possible_prices && result.possible_prices.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">Bulunan Fiyatlar - Birini Seçin:</h4>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {result.possible_prices.map((priceOption, index) => (
+                            <div
+                              key={index}
+                              className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                selectedPrice?.selector === priceOption.selector && selectedPrice?.price === priceOption.price
+                                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                                  : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                              }`}
+                              onClick={() => setSelectedPrice(priceOption)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <div className={`w-3 h-3 rounded-full ${
+                                      selectedPrice?.selector === priceOption.selector && selectedPrice?.price === priceOption.price
+                                        ? 'bg-blue-500'
+                                        : 'bg-gray-300'
+                                    }`}></div>
+                                    <span className="font-semibold text-lg text-gray-900">₺{priceOption.price}</span>
+                                    <span className={`text-xs px-2 py-1 rounded ${
+                                      priceOption.source === 'provided' ? 'bg-blue-100 text-blue-800' :
+                                      priceOption.source === 'common' ? 'bg-green-100 text-green-800' :
+                                      priceOption.source === 'meta' ? 'bg-purple-100 text-purple-800' :
+                                      'bg-orange-100 text-orange-800'
+                                    }`}>
+                                      {priceOption.source === 'provided' ? 'Girilen' :
+                                       priceOption.source === 'common' ? 'Yaygın' :
+                                       priceOption.source === 'meta' ? 'Meta' : 'JSON-LD'}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 text-xs text-gray-600">
+                                    <div><strong>Selector:</strong> {priceOption.selector}</div>
+                                    <div><strong>Element Sayısı:</strong> {priceOption.elementCount}</div>
+                                    <div className="truncate"><strong>İçerik:</strong> {priceOption.textContent}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {materialType && selectedPrice && (
                       <div className="mt-3 space-y-2">
                         <div className="flex items-center space-x-2">
                           <label className="text-sm text-gray-700">Çarpan:</label>
@@ -836,7 +918,7 @@ export default function URLTesterPage() {
                             placeholder="1.00"
                           />
                           <span className="text-xs text-gray-500">
-                            = ₺{((result.data?.price || 0) * priceMultiplier).toFixed(2)}
+                            = ₺{(selectedPrice.price * priceMultiplier).toFixed(2)}
                           </span>
                         </div>
                         <button
@@ -858,6 +940,64 @@ export default function URLTesterPage() {
                     <div className="text-sm text-red-700">
                       <strong>Hata:</strong> {result.error || 'Bilinmeyen hata'}
                     </div>
+
+                    {/* Başarısız durumda da olası fiyatları göster */}
+                    {result.possible_prices && result.possible_prices.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">Ancak şu fiyatlar bulundu - Birini seçebilirsiniz:</h4>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {result.possible_prices.map((priceOption, index) => (
+                            <div
+                              key={index}
+                              className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                selectedPrice?.selector === priceOption.selector && selectedPrice?.price === priceOption.price
+                                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                                  : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                              }`}
+                              onClick={() => setSelectedPrice(priceOption)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <div className={`w-3 h-3 rounded-full ${
+                                      selectedPrice?.selector === priceOption.selector && selectedPrice?.price === priceOption.price
+                                        ? 'bg-blue-500'
+                                        : 'bg-gray-300'
+                                    }`}></div>
+                                    <span className="font-semibold text-lg text-gray-900">₺{priceOption.price}</span>
+                                    <span className={`text-xs px-2 py-1 rounded ${
+                                      priceOption.source === 'provided' ? 'bg-blue-100 text-blue-800' :
+                                      priceOption.source === 'common' ? 'bg-green-100 text-green-800' :
+                                      priceOption.source === 'meta' ? 'bg-purple-100 text-purple-800' :
+                                      'bg-orange-100 text-orange-800'
+                                    }`}>
+                                      {priceOption.source === 'provided' ? 'Girilen' :
+                                       priceOption.source === 'common' ? 'Yaygın' :
+                                       priceOption.source === 'meta' ? 'Meta' : 'JSON-LD'}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 text-xs text-gray-600">
+                                    <div><strong>Selector:</strong> {priceOption.selector}</div>
+                                    <div><strong>Element Sayısı:</strong> {priceOption.elementCount}</div>
+                                    <div className="truncate"><strong>İçerik:</strong> {priceOption.textContent}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {selectedPrice && (
+                          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div className="text-sm text-yellow-800">
+                              <strong>Seçilen Fiyat:</strong> ₺{selectedPrice.price} ({selectedPrice.selector})
+                            </div>
+                            <div className="text-xs text-yellow-600 mt-1">
+                              Bu fiyatı kullanarak kaydetmek için malzeme türünü seçin ve &quot;Kaydet&quot; butonuna basın.
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {result.html_preview && (
                       <details className="mt-2">
                         <summary className="text-xs text-gray-600 cursor-pointer">
