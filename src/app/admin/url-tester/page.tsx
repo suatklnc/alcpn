@@ -247,6 +247,8 @@ export default function URLTesterPage() {
     }
 
     try {
+      console.log('Saving URL with price_multiplier:', priceMultiplier, 'type:', typeof priceMultiplier);
+      
       const response = await fetch('/api/admin/custom-scraping-urls', {
         method: 'POST',
         headers: {
@@ -375,6 +377,9 @@ export default function URLTesterPage() {
     setUrl(savedUrl.url);
     setSelector(savedUrl.selector);
     setMaterialType(savedUrl.material_type);
+    console.log('Loading saved URL:', savedUrl);
+    console.log('price_multiplier from DB:', savedUrl.price_multiplier, 'type:', typeof savedUrl.price_multiplier);
+    
     setSelectedUrl(savedUrl);
     setAutoScrapingEnabled(savedUrl.auto_scraping_enabled || false);
     setAutoScrapingInterval(savedUrl.auto_scraping_interval_hours || 24);
@@ -724,10 +729,14 @@ export default function URLTesterPage() {
                         </label>
                         <input
                           type="number"
-                          step="0.01"
-                          min="0.01"
+                          step="0.00001"
+                          min="0.00001"
                           value={priceMultiplier}
-                          onChange={(e) => setPriceMultiplier(parseFloat(e.target.value) || 1)}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            console.log('Price multiplier input changed:', e.target.value, '-> parsed:', value);
+                            setPriceMultiplier(value || 1);
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                           placeholder="1.00"
                         />
@@ -814,10 +823,14 @@ export default function URLTesterPage() {
                           <label className="text-sm text-gray-700">Çarpan:</label>
                           <input
                             type="number"
-                            step="0.01"
-                            min="0.01"
+                            step="0.00001"
+                            min="0.00001"
                             value={priceMultiplier}
-                            onChange={(e) => setPriceMultiplier(parseFloat(e.target.value) || 1)}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value);
+                              console.log('Price multiplier input changed:', e.target.value, '-> parsed:', value);
+                              setPriceMultiplier(value || 1);
+                            }}
                             className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="1.00"
                           />
@@ -1127,7 +1140,7 @@ export default function URLTesterPage() {
                             </button>
                             <button
                               onClick={() => {
-                                const newMultiplier = prompt('Yeni fiyat çarpanı:', String(savedUrl.price_multiplier || 1));
+                                const newMultiplier = prompt('Yeni fiyat çarpanı (örn: 0.00083):', String(savedUrl.price_multiplier || 1));
                                 if (newMultiplier) {
                                   handleUpdateAutoScrapingSettings(
                                     savedUrl, 
