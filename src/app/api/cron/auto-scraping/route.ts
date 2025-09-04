@@ -10,6 +10,29 @@ export async function GET(request: NextRequest) {
     // TODO: Production'da gerçek authentication kullan
     console.log('Cron job triggered at:', new Date().toISOString());
 
+    // Hemen response döndür, işlemi background'da çalıştır
+    const response = NextResponse.json({
+      message: 'Cron job started - processing in background',
+      timestamp: new Date().toISOString()
+    });
+
+    // Background'da işlemi çalıştır
+    processScrapingInBackground().catch(error => {
+      console.error('Background scraping error:', error);
+    });
+
+    return response;
+  } catch (error) {
+    console.error('Cron auto-scraping API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// Background'da çalışacak scraping fonksiyonu
+async function processScrapingInBackground() {
+  try {
+    console.log('Background scraping started at:', new Date().toISOString());
+    
     const supabase = await createClient();
     
     // Service role client for RLS bypass
@@ -28,28 +51,26 @@ export async function GET(request: NextRequest) {
     console.log('All active auto-scraping URLs:', allActiveUrls);
     console.log('Current time:', new Date().toISOString());
 
-    // Geçici olarak: Tüm aktif URL'leri çek (test için)
+    // Aktif URL'leri çek - zaman kontrolü ile
     const { data: urlsToScrape, error: fetchError } = await supabase
       .from('custom_scraping_urls')
       .select('*')
       .eq('auto_scraping_enabled', true)
       .eq('is_active', true)
-      // .lte('next_auto_scrape_at', new Date().toISOString()) // Geçici olarak kaldırıldı
-      .order('next_auto_scrape_at', { ascending: true });
+      .lte('next_auto_scrape_at', new Date().toISOString())
+      .order('next_auto_scrape_at', { ascending: true })
+      .limit(5); // Maksimum 5 URL ile sınırla
 
     console.log('URLs ready for scraping:', urlsToScrape);
 
     if (fetchError) {
       console.error('Error fetching URLs for auto-scraping:', fetchError);
-      return NextResponse.json({ error: 'Failed to fetch URLs for auto-scraping' }, { status: 500 });
+      return;
     }
 
     if (!urlsToScrape || urlsToScrape.length === 0) {
-      return NextResponse.json({ 
-        message: 'No URLs ready for auto-scraping',
-        scraped_count: 0,
-        urls: []
-      });
+      console.log('No URLs ready for auto-scraping');
+      return;
     }
 
     const results = [];
@@ -61,8 +82,26 @@ export async function GET(request: NextRequest) {
       try {
         const startTime = Date.now();
         
+        // Timeout kontrolü - 15 saniye limit
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Scraping timeout after 15 seconds')), 15000)
+        );
+        
         // Scraping işlemini gerçekleştir
-        const scrapingResult = await performScraping(urlData.url, urlData.selector, urlData.material_type);
+        const scrapingResult = await Promise.race([
+          performScraping(urlData.url, urlData.selector, urlData.material_type),
+          timeoutPromise
+        ]) as {
+          success: boolean;
+          data?: {
+            price?: number;
+            title?: string;
+            availability?: string;
+            image?: string;
+          } | null;
+          error?: string;
+          message?: string;
+        };
         const responseTime = Date.now() - startTime;
         
         console.log(`Scraping result for ${urlData.material_type}:`, scrapingResult);
@@ -135,8 +174,8 @@ export async function GET(request: NextRequest) {
           errorCount++;
         }
 
-        // Rate limiting için kısa bekleme
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Rate limiting için kısa bekleme (200ms'ye düşürüldü)
+        await new Promise(resolve => setTimeout(resolve, 200));
 
       } catch (error) {
         console.error(`Error scraping URL ${urlData.id}:`, error);
@@ -169,18 +208,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      message: `Cron auto-scraping completed. ${successCount} successful, ${errorCount} failed.`,
-      scraped_count: urlsToScrape.length,
-      success_count: successCount,
-      error_count: errorCount,
-      results,
-      timestamp: new Date().toISOString(),
-    });
+    console.log(`Background scraping completed. ${successCount} successful, ${errorCount} failed.`);
+    console.log('Results:', results);
 
   } catch (error) {
-    console.error('Cron auto-scraping API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Background scraping error:', error);
   }
 }
 
@@ -189,8 +221,13 @@ async function performScraping(url: string, selector: string, materialType: stri
   try {
     console.log(`[PERFORM-SCRAPING] Starting scraping for ${materialType} from ${url} with selector: ${selector}`);
     
+    // Fetch timeout kontrolü
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 saniye timeout
+    
     const response = await fetch(url, {
       method: 'GET',
+      signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -200,6 +237,8 @@ async function performScraping(url: string, selector: string, materialType: stri
         'Upgrade-Insecure-Requests': '1',
       },
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.log(`[PERFORM-SCRAPING] HTTP error: ${response.status} ${response.statusText}`);
