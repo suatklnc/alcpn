@@ -70,18 +70,133 @@ async function performScraping(url: string, selector: string, materialType: stri
   }
 }
 
-// HTML parsing fonksiyonu
+// HTML parsing fonksiyonu - Güncellenmiş versiyon
 async function parseHtml(html: string, selector: string, materialType: string) {
   try {
     const $ = cheerio.load(html);
     const extractedData: Record<string, unknown> = {};
     
-    // Extract price using the provided selector
-    console.log(`[PARSE-HTML] Trying selector: ${selector} for ${materialType}`);
-    const priceMatch = extractPriceWithCheerio($ as cheerio.CheerioAPI, selector);
-    console.log(`[PARSE-HTML] Price match result: ${priceMatch} for ${materialType}`);
-    if (priceMatch) {
-      extractedData.price = priceMatch;
+    // Önce tüm olası fiyatları bul (test-scraping API'sindeki gibi)
+    const allPossiblePrices: Array<{
+      selector: string;
+      price: number;
+      textContent: string;
+      elementCount: number;
+      source: 'provided' | 'common' | 'meta' | 'jsonld';
+    }> = [];
+
+    // Try the provided selector first
+    const providedSelectors = selector.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+    for (const singleSelector of providedSelectors) {
+      const elements = $(singleSelector);
+      const textContents = elements.map((i, el) => $(el).text().trim()).get();
+      const extractedPrice = extractPriceFromText(textContents.join(' '));
+      
+      if (extractedPrice) {
+        allPossiblePrices.push({
+          selector: singleSelector,
+          price: extractedPrice,
+          textContent: textContents.join(' | '),
+          elementCount: elements.length,
+          source: 'provided'
+        });
+      }
+    }
+
+    // Try common price selectors
+    const commonPriceSelectors = [
+      '.price', '.product-price', '.current-price', '.sale-price', '.final-price',
+      '.price-current', '.price-now', '.price-value', '.price-amount',
+      '.cost', '.amount', '.value', '.fiyat', '.tutar',
+      '#price', '#product-price', '#current-price', '#final-price',
+      '[data-price]', '[data-testid*="price"]', '[class*="price"]'
+    ];
+
+    for (const commonSelector of commonPriceSelectors) {
+      const elements = $(commonSelector);
+      const textContents = elements.map((i, el) => $(el).text().trim()).get();
+      const extractedPrice = extractPriceFromText(textContents.join(' '));
+      
+      if (extractedPrice) {
+        // Avoid duplicates
+        const exists = allPossiblePrices.some(p => p.price === extractedPrice && p.selector === commonSelector);
+        if (!exists) {
+          allPossiblePrices.push({
+            selector: commonSelector,
+            price: extractedPrice,
+            textContent: textContents.join(' | '),
+            elementCount: elements.length,
+            source: 'common'
+          });
+        }
+      }
+    }
+
+    // Try meta tags
+    const metaPrice = $('meta[property="product:price:amount"]').attr('content') ||
+                     $('meta[name="price"]').attr('content') ||
+                     $('meta[property="og:price:amount"]').attr('content') ||
+                     $('meta[property="product:price"]').attr('content') ||
+                     $('meta[name="twitter:data1"]').attr('content');
+    
+    if (metaPrice) {
+      const extractedPrice = extractPriceFromText(metaPrice);
+      if (extractedPrice) {
+        allPossiblePrices.push({
+          selector: 'meta tag',
+          price: extractedPrice,
+          textContent: metaPrice,
+          elementCount: 1,
+          source: 'meta'
+        });
+      }
+    }
+
+    // Try JSON-LD
+    const jsonLdScripts = $('script[type="application/ld+json"]');
+    for (let i = 0; i < jsonLdScripts.length; i++) {
+      try {
+        const jsonText = $(jsonLdScripts[i]).html();
+        if (jsonText) {
+          const jsonData = JSON.parse(jsonText);
+          const price = extractPriceFromJsonLd(jsonData);
+          if (price) {
+            allPossiblePrices.push({
+              selector: 'JSON-LD',
+              price: price,
+              textContent: JSON.stringify(jsonData).substring(0, 100) + '...',
+              elementCount: 1,
+              source: 'jsonld'
+            });
+          }
+        }
+      } catch { /* Ignore JSON parsing errors */ }
+    }
+
+    // Sort prices by value (highest first) for better user experience
+    allPossiblePrices.sort((a, b) => b.price - a.price);
+
+    console.log(`[PARSE-HTML] Found ${allPossiblePrices.length} possible prices for ${materialType}`);
+    console.log(`[PARSE-HTML] All prices:`, allPossiblePrices);
+
+    // Kaydedilen selector'ın fiyatını bul
+    let selectedPrice = null;
+    for (const priceOption of allPossiblePrices) {
+      if (priceOption.selector === selector || providedSelectors.includes(priceOption.selector)) {
+        selectedPrice = priceOption;
+        break;
+      }
+    }
+
+    // Eğer kaydedilen selector'ın fiyatı bulunamazsa, ilk fiyatı kullan
+    if (!selectedPrice && allPossiblePrices.length > 0) {
+      selectedPrice = allPossiblePrices[0];
+      console.log(`[PARSE-HTML] Provided selector not found, using first available price: ${selectedPrice.selector}`);
+    }
+
+    if (selectedPrice) {
+      extractedData.price = selectedPrice.price;
+      console.log(`[PARSE-HTML] Using price ${selectedPrice.price} from selector: ${selectedPrice.selector}`);
     }
 
     // Try to extract title
@@ -107,14 +222,16 @@ async function parseHtml(html: string, selector: string, materialType: string) {
       return {
         success: true,
         data: extractedData,
-        message: `Fiyat başarıyla çekildi: ₺${extractedData.price}`
+        message: `Fiyat başarıyla çekildi: ₺${extractedData.price}`,
+        possible_prices: allPossiblePrices
       };
     } else {
       console.log(`[PARSE-HTML] No price found for ${materialType} with selector: ${selector}`);
       return {
         success: false,
         error: 'Belirtilen CSS selector ile fiyat bulunamadı',
-        data: null
+        data: null,
+        possible_prices: allPossiblePrices
       };
     }
     
