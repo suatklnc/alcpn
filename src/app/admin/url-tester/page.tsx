@@ -14,8 +14,6 @@ import {
   StarIcon,
   TrashIcon,
   PencilIcon,
-  PlayIcon,
-  PauseIcon,
   ArrowPathIcon,
   Cog6ToothIcon
 } from '@heroicons/react/24/outline';
@@ -115,10 +113,6 @@ export default function URLTesterPage() {
   const [autoScrapingEnabled, setAutoScrapingEnabled] = useState<boolean>(false);
   const [autoScrapingInterval, setAutoScrapingInterval] = useState<number>(24);
   const [isAutoScrapingRunning, setIsAutoScrapingRunning] = useState<boolean>(false);
-  const [autoScrapingIntervalId, setAutoScrapingIntervalId] = useState<NodeJS.Timeout | null>(null);
-  const [customInterval, setCustomInterval] = useState<number>(5); // Saniye cinsinden
-  const [intervalUnit, setIntervalUnit] = useState<'seconds' | 'minutes' | 'hours'>('seconds');
-  const [isAutoScrapingActive, setIsAutoScrapingActive] = useState<boolean>(false);
   
   // Gelişmiş log sistemi
   const [logs, setLogs] = useState<Array<{
@@ -551,56 +545,6 @@ export default function URLTesterPage() {
     }
   };
 
-  // Kullanıcı tanımlı interval ile otomatik fiyat çekme
-  const startCustomAutoScraping = () => {
-    // Mevcut interval'ı temizle
-    if (autoScrapingIntervalId) {
-      clearInterval(autoScrapingIntervalId);
-    }
-
-    // Aktif olan URL'leri bul
-    const activeUrls = savedUrls.filter(url => url.auto_scraping_enabled);
-    if (activeUrls.length === 0) {
-      alert('Otomatik fiyat çekme için aktif URL bulunamadı!');
-      return;
-    }
-
-    // Interval'ı saniye cinsinden hesapla
-    let intervalInSeconds = customInterval;
-    if (intervalUnit === 'minutes') {
-      intervalInSeconds = customInterval * 60;
-    } else if (intervalUnit === 'hours') {
-      intervalInSeconds = customInterval * 3600;
-    }
-    
-    const intervalMs = intervalInSeconds * 1000; // Saniye'yi milisaniye'ye çevir
-
-    console.log(`Starting custom auto-scraping interval: ${intervalMs}ms (${intervalInSeconds}s)`);
-
-    const intervalId = setInterval(async () => {
-      console.log('Running scheduled auto-scraping...');
-      await handleRunAutoScraping();
-    }, intervalMs);
-
-    setAutoScrapingIntervalId(intervalId);
-    setIsAutoScrapingActive(true);
-  };
-
-  const stopCustomAutoScraping = useCallback(() => {
-    if (autoScrapingIntervalId) {
-      clearInterval(autoScrapingIntervalId);
-      setAutoScrapingIntervalId(null);
-      setIsAutoScrapingActive(false);
-      console.log('Custom auto-scraping interval stopped');
-    }
-  }, [autoScrapingIntervalId]);
-
-  // Component unmount olduğunda interval'ı temizle
-  useEffect(() => {
-    return () => {
-      stopCustomAutoScraping();
-    };
-  }, [stopCustomAutoScraping]);
 
   const handleRunManualScraping = async (savedUrl: SavedUrl) => {
     try {
@@ -617,7 +561,46 @@ export default function URLTesterPage() {
       const result = await response.json();
       
       if (response.ok) {
-        alert(`Manuel fiyat çekme tamamlandı!\n${result.message}`);
+        // Başarılı scraping sonrasında material_prices tablosunu güncelle
+        if (result.results && result.results.length > 0) {
+          const scrapingResult = result.results[0];
+          if (scrapingResult.success && scrapingResult.price) {
+            const finalPrice = (typeof scrapingResult.price === 'number' ? 
+              scrapingResult.price * (savedUrl.price_multiplier || 1) : null);
+
+            console.log(`Updating material price for ${savedUrl.material_type}: ${finalPrice}`);
+
+            try {
+              const priceUpdateResponse = await fetch('/api/admin/update-material-price-simple', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  material_type: savedUrl.material_type,
+                  price: finalPrice,
+                }),
+              });
+
+              if (priceUpdateResponse.ok) {
+                const priceUpdateResult = await priceUpdateResponse.json();
+                console.log('Material price updated successfully:', priceUpdateResult);
+                alert(`Manuel fiyat çekme tamamlandı!\n${result.message}\n\nFiyat: ₺${finalPrice}\nMaterial prices tablosu güncellendi.`);
+              } else {
+                const errorData = await priceUpdateResponse.json();
+                console.error('Error updating material price:', errorData);
+                alert(`Manuel fiyat çekme tamamlandı!\n${result.message}\n\nFiyat: ₺${finalPrice}\nAncak material prices tablosu güncellenemedi: ${errorData.error}`);
+              }
+            } catch (error) {
+              console.error('Error calling price update API:', error);
+              alert(`Manuel fiyat çekme tamamlandı!\n${result.message}\n\nFiyat: ₺${finalPrice}\nAncak material prices tablosu güncellenemedi.`);
+            }
+          } else {
+            alert(`Manuel fiyat çekme tamamlandı!\n${result.message}\n\nAncak fiyat çekilemedi.`);
+          }
+        } else {
+          alert(`Manuel fiyat çekme tamamlandı!\n${result.message}`);
+        }
         fetchSavedUrls();
       } else {
         alert(`Manuel fiyat çekme hatası: ${result.error}`);
@@ -939,57 +922,7 @@ export default function URLTesterPage() {
                     )}
                   </button>
 
-                  {/* Aralık Kontrolü */}
-                  <div className="flex items-center space-x-2">
-                    <label className="text-sm text-gray-600">Aralık:</label>
-                    <input
-                      type="number"
-                      value={customInterval}
-                      onChange={(e) => setCustomInterval(parseInt(e.target.value) || 5)}
-                      min="1"
-                      max={intervalUnit === 'seconds' ? 3600 : intervalUnit === 'minutes' ? 60 : 24}
-                      className="w-16 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900"
-                      disabled={isAutoScrapingActive}
-                      placeholder="5"
-                    />
-                    <select
-                      value={intervalUnit}
-                      onChange={(e) => setIntervalUnit(e.target.value as 'seconds' | 'minutes' | 'hours')}
-                      className="px-2 py-1 border border-gray-300 rounded text-sm text-gray-900"
-                      disabled={isAutoScrapingActive}
-                    >
-                      <option value="seconds">saniye</option>
-                      <option value="minutes">dakika</option>
-                      <option value="hours">saat</option>
-                    </select>
-                  </div>
 
-                  {/* Başlat/Durdur Butonu */}
-                  {!isAutoScrapingActive ? (
-                    <button
-                      onClick={startCustomAutoScraping}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm font-medium transition-colors duration-200"
-                    >
-                      <PlayIcon className="h-4 w-4 mr-2" />
-                      Başlat
-                    </button>
-                  ) : (
-                    <button
-                      onClick={stopCustomAutoScraping}
-                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center text-sm font-medium transition-colors duration-200"
-                    >
-                      <PauseIcon className="h-4 w-4 mr-2" />
-                      Durdur
-                    </button>
-                  )}
-
-                  {/* Durum Göstergesi */}
-                  {isAutoScrapingActive && (
-                    <div className="flex items-center space-x-2 text-sm text-green-600">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span>Her {customInterval} {intervalUnit === 'seconds' ? 's' : intervalUnit === 'minutes' ? 'dk' : 'sa'} çalışıyor</span>
-                    </div>
-                  )}
                 </div>
             <button
               onClick={() => setShowSavedUrls(!showSavedUrls)}
@@ -1161,12 +1094,12 @@ export default function URLTesterPage() {
                             >
                               {savedUrl.auto_scraping_enabled ? (
                                 <>
-                                  <PlayIcon className="h-3 w-3 mr-1" />
+                                  <CheckIcon className="h-3 w-3 mr-1" />
                                   Aktif
                                 </>
                               ) : (
                                 <>
-                                  <PauseIcon className="h-3 w-3 mr-1" />
+                                  <XMarkIcon className="h-3 w-3 mr-1" />
                                   Pasif
                                 </>
                               )}
