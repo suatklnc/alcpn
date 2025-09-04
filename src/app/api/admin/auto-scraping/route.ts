@@ -76,7 +76,9 @@ async function parseHtml(html: string, selector: string, materialType: string) {
     const extractedData: Record<string, unknown> = {};
     
     // Extract price using the provided selector
+    console.log(`[PARSE-HTML] Trying selector: ${selector} for ${materialType}`);
     const priceMatch = extractPriceWithCheerio($ as cheerio.CheerioAPI, selector);
+    console.log(`[PARSE-HTML] Price match result: ${priceMatch} for ${materialType}`);
     if (priceMatch) {
       extractedData.price = priceMatch;
     }
@@ -128,10 +130,14 @@ async function parseHtml(html: string, selector: string, materialType: string) {
 // Helper functions (test-scraping'den kopyalandı)
 function extractPriceWithCheerio($: cheerio.CheerioAPI, selector: string): number | null {
   try {
+    console.log(`[EXTRACT-PRICE] Trying selector: ${selector}`);
     const priceElement = $(selector);
+    console.log(`[EXTRACT-PRICE] Found ${priceElement.length} elements with selector: ${selector}`);
     if (priceElement.length > 0) {
       const priceText = priceElement.text().trim();
+      console.log(`[EXTRACT-PRICE] Price text: "${priceText}"`);
       const price = extractPriceFromText(priceText);
+      console.log(`[EXTRACT-PRICE] Extracted price: ${price}`);
       if (price) return price;
     }
 
