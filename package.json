@@ -27,8 +27,6 @@
     "@supabase/supabase-js": "^2.56.1",
     "@upstash/ratelimit": "^2.0.6",
     "@upstash/redis": "^1.35.3",
-    "@vercel/analytics": "^1.5.0",
-    "@vercel/speed-insights": "^1.2.0",
     "cheerio": "^1.1.2",
     "next": "15.5.2",
     "puppeteer": "^24.18.0",
