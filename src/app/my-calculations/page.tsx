@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { 
   CalendarIcon, 
@@ -26,7 +26,7 @@ interface CalculationHistory {
 
 export default function MyCalculationsPage() {
   const [calculations, setCalculations] = useState<CalculationHistory[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,7 +34,7 @@ export default function MyCalculationsPage() {
   const [sortBy, setSortBy] = useState('newest');
   const { user, loading: authLoading } = useAuth();
 
-  const fetchCalculations = useCallback(async () => {
+  const fetchCalculations = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -51,7 +51,7 @@ export default function MyCalculationsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     if (!authLoading) {
@@ -64,7 +64,7 @@ export default function MyCalculationsPage() {
         setError(null);
       }
     }
-  }, [user, authLoading, fetchCalculations]);
+  }, [user, authLoading]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('tr-TR', {
@@ -146,7 +146,7 @@ export default function MyCalculationsPage() {
   }, [calculations, searchTerm, filterType, sortBy]);
 
 
-  const handleDeleteCalculation = useCallback(async (id: string) => {
+  const handleDeleteCalculation = async (id: string) => {
     if (!confirm('Bu hesaplamayı silmek istediğinizden emin misiniz?')) {
       return;
     }
@@ -169,9 +169,9 @@ export default function MyCalculationsPage() {
     } finally {
       setDeletingId(null);
     }
-  }, []);
+  };
 
-  const handleCopyToClipboard = useCallback(async (calculation: CalculationHistory) => {
+  const handleCopyToClipboard = async (calculation: CalculationHistory) => {
     const textContent = [
       `HESAPLAMA DETAYI`,
       `================`,
@@ -190,7 +190,7 @@ export default function MyCalculationsPage() {
       console.error('Panoya kopyalama hatası:', err);
       alert('Panoya kopyalama başarısız oldu.');
     }
-  }, []);
+  };
 
   // Kullanıcı giriş yapmamışsa
   if (!authLoading && !user) {
