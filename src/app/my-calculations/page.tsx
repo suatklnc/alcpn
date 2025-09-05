@@ -4,14 +4,12 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { 
   CalendarIcon, 
-  CalculatorIcon, 
-  CurrencyDollarIcon, 
+  CalculatorIcon,
+  CurrencyDollarIcon,
   TrashIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
   ClipboardDocumentIcon,
-  ChartBarIcon,
-  ClockIcon,
   EyeIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '@/lib/auth-context';
@@ -147,23 +145,6 @@ export default function MyCalculationsPage() {
     return filtered;
   }, [calculations, searchTerm, filterType, sortBy]);
 
-  // İstatistikler
-  const stats = useMemo(() => {
-    if (calculations.length === 0) return null;
-    
-    const totalCost = calculations.reduce((sum, calc) => sum + calc.total_cost, 0);
-    const averageCost = totalCost / calculations.length;
-    const totalArea = calculations.reduce((sum, calc) => sum + calc.area, 0);
-    const averageArea = totalArea / calculations.length;
-
-    return {
-      totalCalculations: calculations.length,
-      totalCost,
-      averageCost,
-      totalArea,
-      averageArea
-    };
-  }, [calculations]);
 
   const handleDeleteCalculation = async (id: string) => {
     if (!confirm('Bu hesaplamayı silmek istediğinizden emin misiniz?')) {
@@ -304,74 +285,6 @@ export default function MyCalculationsPage() {
             </div>
           </div>
 
-          {/* İstatistik Kartları */}
-          {stats && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Toplam Hesaplama</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.totalCalculations}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Toplam Maliyet</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalCost)}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Ortalama Maliyet</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.averageCost)}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Toplam Alan</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.totalArea.toFixed(1)} m²</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Filtreleme ve Arama */}
           <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">

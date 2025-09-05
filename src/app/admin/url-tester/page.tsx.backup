@@ -1,0 +1,1422 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import AdminLayout from '@/components/admin/AdminLayout';
+import { useAuth } from '@/lib/auth-context';
+import { 
+  BeakerIcon, 
+  DocumentTextIcon, 
+  ClockIcon, 
+  PlusIcon, 
+  CheckIcon, 
+  XMarkIcon, 
+  StarIcon,
+  TrashIcon,
+  PencilIcon,
+  ArrowPathIcon,
+  Cog6ToothIcon
+} from '@heroicons/react/24/outline';
+
+const MATERIAL_TYPES = [
+  // Tavan Malzemeleri (hesaplayıcıdaki type'larla eşleşen)
+  'beyaz_alcipan', 'c_profili', 'u_profili', 'aski_teli', 'aski_masasi', 'klips', 'vida',
+  't_ana_tasiyici', 'tali_120_tasiyici', 'tali_60_tasiyici', 'omega', 'celik_dubel', 'clip_in_aski_masasi', 'alüminyum_plaka', 'plaka',
+  
+  // Duvar Malzemeleri
+  'duvar_u_profili', 'duvar_c_profili', 'agraf', 'dubel_civi', 'duvar_dubel', 'vida_25', 'vida_35'
+];
+
+const MATERIAL_NAMES: Record<string, string> = {
+  // Tavan Malzemeleri
+  'beyaz_alcipan': 'Beyaz Alçıpan',
+  'c_profili': 'C Profili',
+  'u_profili': 'U Profili',
+  'aski_teli': 'Aski Teli',
+  'aski_masasi': 'Aski Masası',
+  'klips': 'Klips',
+  'vida': 'Vida',
+  't_ana_tasiyici': 'T Ana Taşıyıcı',
+  'tali_120_tasiyici': 'Tali 120 Taşıyıcı',
+  'tali_60_tasiyici': 'Tali 60 Taşıyıcı',
+  'omega': 'Omega',
+  'celik_dubel': 'Çelik Dubel',
+  'clip_in_aski_masasi': 'Clip In Askı Maşası',
+  'alüminyum_plaka': 'Alüminyum Plaka',
+  'plaka': 'Plaka',
+  
+  // Duvar Malzemeleri
+  'duvar_u_profili': 'Duvar U Profili',
+  'duvar_c_profili': 'Duvar C Profili',
+  'agraf': 'Agraf',
+  'dubel_civi': 'Dubel Çivi',
+  'duvar_dubel': 'Duvar Dubel',
+  'vida_25': 'Vida 25mm',
+  'vida_35': 'Vida 35mm'
+};
+
+interface TestResult {
+  success: boolean;
+  data?: {
+    price: number;
+    title: string;
+    availability: string;
+    image: string;
+  };
+  error?: string;
+  response_time_ms: number;
+  message?: string;
+  html_preview?: string;
+  debug_info?: Record<string, unknown>;
+  possible_prices?: Array<{
+    selector: string;
+    price: number;
+    textContent: string;
+    elementCount: number;
+    source: 'provided' | 'common' | 'meta' | 'jsonld';
+  }>;
+}
+
+interface SavedUrl {
+  id: string;
+  url: string;
+  selector: string;
+  material_type: string;
+  last_tested_at: string;
+  test_result: {
+    success: boolean;
+    price?: number;
+    error?: string;
+  };
+  is_active: boolean;
+  // Auto-scraping fields
+  auto_scraping_enabled?: boolean;
+  auto_scraping_interval_hours?: number;
+  price_multiplier?: number;
+  last_auto_scraped_at?: string;
+  next_auto_scrape_at?: string;
+}
+
+// TestHistory interface kaldırıldı - sadece SavedUrl kullanılıyor
+
+export default function URLTesterPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
+  
+  const [url, setUrl] = useState('');
+  const [selector, setSelector] = useState('');
+  const [materialType, setMaterialType] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<TestResult | null>(null);
+  const [priceMultiplier, setPriceMultiplier] = useState<number>(1);
+  const [selectedPrice, setSelectedPrice] = useState<{
+    selector: string;
+    price: number;
+    textContent: string;
+    elementCount: number;
+    source: 'provided' | 'common' | 'meta' | 'jsonld';
+  } | null>(null);
+  // Test geçmişi kaldırıldı - sadece kaydedilmiş URL'ler kullanılacak
+  const [savedUrls, setSavedUrls] = useState<SavedUrl[]>([]);
+  const [showSavedUrls, setShowSavedUrls] = useState(false);
+  const [, setSelectedUrl] = useState<SavedUrl | null>(null);
+  const [editingSelector, setEditingSelector] = useState<string | null>(null);
+  const [editingSelectorValue, setEditingSelectorValue] = useState('');
+  
+  // Auto-scraping states
+  const [autoScrapingEnabled, setAutoScrapingEnabled] = useState<boolean>(false);
+  const [autoScrapingInterval, setAutoScrapingInterval] = useState<number>(24);
+  const [isAutoScrapingRunning, setIsAutoScrapingRunning] = useState<boolean>(false);
+  
+  // Gelişmiş log sistemi
+  const [logs, setLogs] = useState<Array<{
+    id: string;
+    timestamp: Date;
+    type: 'info' | 'success' | 'warning' | 'error';
+    message: string;
+    details?: Record<string, unknown>;
+  }>>([]);
+  const [showLogs, setShowLogs] = useState(false);
+
+  // Log fonksiyonları
+  const addLog = useCallback((type: 'info' | 'success' | 'warning' | 'error', message: string, details?: Record<string, unknown>) => {
+    const newLog = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date(),
+      type,
+      message,
+      details
+    };
+    setLogs(prev => [newLog, ...prev].slice(0, 100)); // Son 100 log'u tut
+  }, []);
+
+  const clearLogs = useCallback(() => {
+    setLogs([]);
+  }, []);
+
+  // Authentication check
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else {
+        setIsChecking(false);
+      }
+    }
+  }, [user, loading, router]);
+
+  // Load saved URLs on component mount
+  useEffect(() => {
+    if (!isChecking && user) {
+      fetchSavedUrls();
+    }
+  }, [isChecking, user]);
+
+  const fetchSavedUrls = async () => {
+    try {
+      const response = await fetch('/api/admin/custom-scraping-urls');
+      if (response.ok) {
+        const data = await response.json();
+        setSavedUrls(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Error fetching saved URLs:', error);
+    }
+  };
+
+  const handleTest = async () => {
+    if (!url || !selector) {
+      addLog('warning', 'URL ve CSS selector gerekli!');
+      alert('URL ve CSS selector gerekli!');
+      return;
+    }
+
+    setIsLoading(true);
+    addLog('info', `Test başlatılıyor: ${url}`, { selector, materialType });
+    
+    try {
+      const startTime = Date.now();
+      const response = await fetch('/api/admin/test-scraping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          selector,
+          material_type: materialType || undefined,
+        }),
+      });
+
+      const responseTime = Date.now() - startTime;
+      const testResult: TestResult = await response.json();
+      
+      if (testResult.success) {
+        addLog('success', `Test başarılı! Fiyat: ₺${testResult.data?.price}`, {
+          responseTime: `${responseTime}ms`,
+          data: testResult.data
+        });
+      } else {
+        addLog('error', `Test başarısız: ${testResult.error}`, {
+          responseTime: `${responseTime}ms`,
+          error: testResult.error
+        });
+      }
+      
+      setResult(testResult);
+      
+      // Eğer olası fiyatlar varsa, ilkini otomatik seç
+      if (testResult.possible_prices && testResult.possible_prices.length > 0) {
+        setSelectedPrice(testResult.possible_prices[0]);
+      } else {
+        setSelectedPrice(null);
+      }
+
+      // Test geçmişi kaldırıldı - sadece kaydedilmiş URL'ler kullanılacak
+    } catch (error) {
+      console.error('URL test error:', error);
+      addLog('error', 'Test sırasında hata oluştu', { error: error instanceof Error ? error.message : 'Bilinmeyen hata' });
+      setResult({
+        success: false,
+        error: 'Test sırasında hata oluştu',
+        response_time_ms: 0,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveUrl = async () => {
+    if (!url || !selector || !materialType) {
+      alert('URL, CSS selector ve malzeme türü gerekli!');
+      return;
+    }
+
+    if (!result || !result.success) {
+      alert('Önce başarılı bir test yapın!');
+      return;
+    }
+
+    if (!selectedPrice) {
+      alert('Lütfen bir fiyat seçin!');
+      return;
+    }
+
+    // Aynı URL zaten kayıtlı mı kontrol et
+    const existingUrl = savedUrls.find(savedUrl => 
+      savedUrl.url === url && savedUrl.material_type === materialType
+    );
+    
+    if (existingUrl) {
+      alert('Bu URL ve malzeme türü zaten kayıtlı!');
+      return;
+    }
+
+    try {
+      console.log('Saving URL with price_multiplier:', priceMultiplier, 'type:', typeof priceMultiplier);
+      
+      const response = await fetch('/api/admin/custom-scraping-urls', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          selector: selectedPrice.selector, // Seçilen fiyatın selector'ını kullan
+          material_type: materialType,
+          test_result: {
+            ...result,
+            data: {
+              ...result.data,
+              price: selectedPrice.price // Seçilen fiyatı kullan
+            }
+          },
+          last_tested_at: new Date().toISOString(),
+          auto_scraping_enabled: autoScrapingEnabled,
+          auto_scraping_interval_hours: autoScrapingInterval,
+          price_multiplier: priceMultiplier,
+        }),
+      });
+
+      if (response.ok) {
+        alert('URL başarıyla kaydedildi!');
+        fetchSavedUrls();
+        setUrl('');
+        setSelector('');
+        setMaterialType('');
+        setResult(null);
+      } else {
+        const error = await response.json();
+        alert(`Hata: ${error.message || 'URL kaydedilemedi'}`);
+      }
+    } catch (error) {
+      console.error('Error saving URL:', error);
+      alert('URL kaydedilirken hata oluştu');
+    }
+  };
+
+  const handleSetAsDefaultPrice = async (savedUrl: SavedUrl) => {
+    if (!savedUrl.test_result || !savedUrl.test_result.success || !savedUrl.test_result.price) {
+      alert('Bu URL için geçerli bir fiyat bulunamadı!');
+      return;
+    }
+
+    if (confirm(`${MATERIAL_NAMES[savedUrl.material_type]} için varsayılan fiyatı ₺${savedUrl.test_result.price} olarak ayarlamak istediğinizden emin misiniz?`)) {
+      try {
+        const response = await fetch('/api/admin/set-default-price', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            material_type: savedUrl.material_type,
+            price: savedUrl.test_result.price,
+          }),
+        });
+
+        if (response.ok) {
+          alert(`${MATERIAL_NAMES[savedUrl.material_type]} için varsayılan fiyat ₺${savedUrl.test_result.price} olarak ayarlandı!`);
+        } else {
+          alert('Fiyat ayarlanırken hata oluştu');
+        }
+      } catch (error) {
+        console.error('Error setting default price:', error);
+        alert('Fiyat ayarlanırken hata oluştu');
+      }
+    }
+  };
+
+  const handleSetAsDefaultPriceFromResult = async () => {
+    if (!result || !result.success || !selectedPrice || !materialType) {
+      alert('Geçerli bir test sonucu, seçilen fiyat ve malzeme türü gerekli!');
+      return;
+    }
+
+    const originalPrice = selectedPrice.price;
+    const finalPrice = originalPrice * priceMultiplier;
+
+    if (confirm(`${MATERIAL_NAMES[materialType]} için varsayılan fiyatı ₺${originalPrice} × ${priceMultiplier} = ₺${finalPrice.toFixed(2)} olarak ayarlamak istediğinizden emin misiniz?`)) {
+      try {
+        const response = await fetch('/api/admin/update-material-price-simple', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            material_type: materialType,
+            price: finalPrice,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('API Response:', result);
+          const price = result.unit_price || result.data?.unit_price || result.data?.price || result.data;
+          console.log('Extracted price:', price);
+          alert(`${MATERIAL_NAMES[materialType]} için varsayılan fiyat ₺${price} olarak ayarlandı! (${result.action})`);
+        } else {
+          const errorData = await response.json();
+          alert(`Fiyat ayarlanırken hata oluştu: ${errorData.error || 'Bilinmeyen hata'}`);
+        }
+      } catch (error) {
+        console.error('Error setting default price:', error);
+        alert('Fiyat ayarlanırken hata oluştu');
+      }
+    }
+  };
+
+  const handleDeleteUrl = async (urlId: string) => {
+    if (confirm('Bu URL\'yi silmek istediğinizden emin misiniz?')) {
+      try {
+        const response = await fetch(`/api/admin/custom-scraping-urls/${urlId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          alert('URL başarıyla silindi!');
+          fetchSavedUrls();
+        } else {
+          alert('URL silinirken hata oluştu');
+        }
+      } catch (error) {
+        console.error('Error deleting URL:', error);
+        alert('URL silinirken hata oluştu');
+      }
+    }
+  };
+
+  const handleLoadSavedUrl = (savedUrl: SavedUrl) => {
+    setUrl(savedUrl.url);
+    setSelector(savedUrl.selector);
+    setMaterialType(savedUrl.material_type);
+    console.log('Loading saved URL:', savedUrl);
+    console.log('price_multiplier from DB:', savedUrl.price_multiplier, 'type:', typeof savedUrl.price_multiplier);
+    
+    setSelectedUrl(savedUrl);
+    setAutoScrapingEnabled(savedUrl.auto_scraping_enabled || false);
+    setAutoScrapingInterval(savedUrl.auto_scraping_interval_hours || 24);
+    setPriceMultiplier(savedUrl.price_multiplier || 1);
+  };
+
+  const handleToggleAutoScraping = async (savedUrl: SavedUrl) => {
+    const newEnabled = !savedUrl.auto_scraping_enabled;
+    
+    try {
+      const response = await fetch(`/api/admin/custom-scraping-urls/${savedUrl.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          auto_scraping_enabled: newEnabled,
+          // Eğer aktif ediliyorsa, hemen çekim yapılabilmesi için next_auto_scrape_at'i şu an olarak ayarla
+          ...(newEnabled && {
+            next_auto_scrape_at: new Date().toISOString()
+          })
+        }),
+      });
+
+      if (response.ok) {
+        alert(`Otomatik fiyat çekme ${newEnabled ? 'etkinleştirildi' : 'devre dışı bırakıldı'}!`);
+        fetchSavedUrls();
+      } else {
+        alert('Otomatik fiyat çekme ayarı güncellenirken hata oluştu');
+      }
+    } catch (error) {
+      console.error('Error toggling auto-scraping:', error);
+      alert('Otomatik fiyat çekme ayarı güncellenirken hata oluştu');
+    }
+  };
+
+  const handleUpdateAutoScrapingSettings = async (savedUrl: SavedUrl, interval: number, multiplier: number) => {
+    try {
+      const response = await fetch(`/api/admin/custom-scraping-urls/${savedUrl.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          auto_scraping_interval_hours: interval,
+          price_multiplier: multiplier,
+        }),
+      });
+
+      if (response.ok) {
+        alert('Otomatik fiyat çekme ayarları güncellendi!');
+        fetchSavedUrls();
+      } else {
+        alert('Otomatik fiyat çekme ayarları güncellenirken hata oluştu');
+      }
+    } catch (error) {
+      console.error('Error updating auto-scraping settings:', error);
+      alert('Otomatik fiyat çekme ayarları güncellenirken hata oluştu');
+    }
+  };
+
+  const handleStartEditingSelector = (savedUrl: SavedUrl) => {
+    setEditingSelector(savedUrl.id);
+    setEditingSelectorValue(savedUrl.selector);
+  };
+
+  const handleCancelEditingSelector = () => {
+    setEditingSelector(null);
+    setEditingSelectorValue('');
+  };
+
+  const handleSaveSelector = async (savedUrl: SavedUrl) => {
+    try {
+      const response = await fetch(`/api/admin/custom-scraping-urls/${savedUrl.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          selector: editingSelectorValue,
+        }),
+      });
+
+      if (response.ok) {
+        alert('Selector güncellendi!');
+        setEditingSelector(null);
+        setEditingSelectorValue('');
+        fetchSavedUrls();
+      } else {
+        alert('Selector güncellenirken hata oluştu');
+      }
+    } catch (error) {
+      console.error('Error updating selector:', error);
+      alert('Selector güncellenirken hata oluştu');
+    }
+  };
+
+  const handleRunAutoScraping = async () => {
+    setIsAutoScrapingRunning(true);
+    addLog('info', 'Otomatik fiyat çekme başlatılıyor...');
+    
+    try {
+      const startTime = Date.now();
+      const response = await fetch('/api/admin/auto-scraping', {
+        method: 'GET',
+      });
+
+      const responseTime = Date.now() - startTime;
+      const result = await response.json();
+      
+      if (response.ok) {
+        console.log('Auto-scraping result:', result);
+        
+        // Her URL için ayrı log'lar ekle
+        if (result.results && Array.isArray(result.results)) {
+          result.results.forEach((urlResult: Record<string, unknown>) => {
+            if (urlResult.success) {
+              addLog('success', `✅ ${urlResult.material_type}: Fiyat başarıyla çekildi (₺${urlResult.price})`, {
+                url: urlResult.url,
+                materialType: urlResult.material_type,
+                price: urlResult.price,
+                responseTime: `${urlResult.response_time_ms}ms`
+              });
+            } else {
+              addLog('error', `❌ ${urlResult.material_type}: ${urlResult.error}`, {
+                url: urlResult.url,
+                materialType: urlResult.material_type,
+                error: urlResult.error,
+                responseTime: `${urlResult.response_time_ms}ms`,
+                selector: urlResult.selector || 'Bilinmiyor'
+              });
+            }
+          });
+        }
+
+        if (result.success_count > 0) {
+          addLog('success', `🎉 Otomatik fiyat çekme başarılı! ${result.success_count} başarılı, ${result.error_count} hata`, {
+            responseTime: `${responseTime}ms`,
+            totalResults: result.results?.length || 0
+          });
+        } else {
+          addLog('warning', `⚠️ Otomatik fiyat çekme tamamlandı ancak hiç başarılı sonuç yok. ${result.error_count} hata`, {
+            responseTime: `${responseTime}ms`,
+            totalResults: result.results?.length || 0
+          });
+        }
+        
+        // Sadece hata varsa alert göster
+        if (result.error_count > 0) {
+          alert(`Otomatik fiyat çekme tamamlandı!\n${result.message}`);
+        }
+        fetchSavedUrls();
+      } else {
+        addLog('error', `Otomatik fiyat çekme başarısız: ${result.error}`, {
+          responseTime: `${responseTime}ms`,
+          error: result.error
+        });
+        alert(`Otomatik fiyat çekme hatası: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error running auto-scraping:', error);
+      addLog('error', 'Otomatik fiyat çekme sırasında hata oluştu', { 
+        error: error instanceof Error ? error.message : 'Bilinmeyen hata' 
+      });
+      alert('Otomatik fiyat çekme sırasında hata oluştu');
+    } finally {
+      setIsAutoScrapingRunning(false);
+    }
+  };
+
+
+  const handleRunManualScraping = async (savedUrl: SavedUrl) => {
+    try {
+      const response = await fetch('/api/admin/auto-scraping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url_ids: [savedUrl.id],
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        // Başarılı scraping sonrasında material_prices tablosunu güncelle
+        if (result.results && result.results.length > 0) {
+          const scrapingResult = result.results[0];
+          if (scrapingResult.success && scrapingResult.price) {
+            const finalPrice = (typeof scrapingResult.price === 'number' ? 
+              scrapingResult.price * (savedUrl.price_multiplier || 1) : null);
+
+            console.log(`Updating material price for ${savedUrl.material_type}: ${finalPrice}`);
+
+            try {
+              const priceUpdateResponse = await fetch('/api/admin/update-material-price-simple', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  material_type: savedUrl.material_type,
+                  price: finalPrice,
+                }),
+              });
+
+              if (priceUpdateResponse.ok) {
+                const priceUpdateResult = await priceUpdateResponse.json();
+                console.log('Material price updated successfully:', priceUpdateResult);
+                alert(`Manuel fiyat çekme tamamlandı!\n${result.message}\n\nFiyat: ₺${finalPrice}\nMaterial prices tablosu güncellendi.`);
+              } else {
+                const errorData = await priceUpdateResponse.json();
+                console.error('Error updating material price:', errorData);
+                alert(`Manuel fiyat çekme tamamlandı!\n${result.message}\n\nFiyat: ₺${finalPrice}\nAncak material prices tablosu güncellenemedi: ${errorData.error}`);
+              }
+            } catch (error) {
+              console.error('Error calling price update API:', error);
+              alert(`Manuel fiyat çekme tamamlandı!\n${result.message}\n\nFiyat: ₺${finalPrice}\nAncak material prices tablosu güncellenemedi.`);
+            }
+          } else {
+            alert(`Manuel fiyat çekme tamamlandı!\n${result.message}\n\nAncak fiyat çekilemedi.`);
+          }
+        } else {
+          alert(`Manuel fiyat çekme tamamlandı!\n${result.message}`);
+        }
+        fetchSavedUrls();
+      } else {
+        alert(`Manuel fiyat çekme hatası: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error running manual scraping:', error);
+      alert('Manuel fiyat çekme sırasında hata oluştu');
+    }
+  };
+
+  // Test geçmişi kaldırıldı
+
+  if (loading || isChecking) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-lg font-medium text-gray-900 mb-2">
+            Yükleniyor...
+          </h2>
+          <p className="text-sm text-gray-600">
+            Admin paneline erişim kontrol ediliyor.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Redirect will happen
+  }
+
+  return (
+    <AdminLayout>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+                <BeakerIcon className="h-6 w-6 text-white" />
+              </div>
+              URL Tester & Malzeme Fiyat Yöneticisi
+            </h1>
+            <p className="text-lg text-gray-600 mt-2">
+              URL&apos;leri test edin, fiyatları çekin ve malzemeler için varsayılan fiyatları belirleyin
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Test Form */}
+          <div className="xl:col-span-1">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mr-3">
+                  <BeakerIcon className="h-5 w-5 text-white" />
+                </div>
+                URL Test Et
+              </h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  URL
+                </label>
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://example.com/product"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500 bg-gray-50 focus:bg-white transition-all duration-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  CSS Selector
+                </label>
+                <input
+                  type="text"
+                  value={selector}
+                  onChange={(e) => setSelector(e.target.value)}
+                  placeholder=".price (tek selector girin)"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-500 bg-gray-50 focus:bg-white transition-all duration-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Malzeme Türü (Opsiyonel)
+                </label>
+                <select
+                  value={materialType}
+                  onChange={(e) => setMaterialType(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-gray-50 focus:bg-white transition-all duration-200 appearance-none cursor-pointer"
+                >
+                  <option value="">Malzeme seçin...</option>
+                  {MATERIAL_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {MATERIAL_NAMES[type]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Auto-scraping Settings */}
+              <div className="border-t border-gray-200 pt-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                  Otomatik Fiyat Çekme Ayarları
+                </h3>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="autoScrapingEnabled"
+                      checked={autoScrapingEnabled}
+                      onChange={(e) => setAutoScrapingEnabled(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="autoScrapingEnabled" className="ml-2 block text-sm font-medium text-gray-900">
+                      Otomatik fiyat çekmeyi etkinleştir
+                    </label>
+                  </div>
+
+                  {autoScrapingEnabled && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Fiyat Çarpanı
+                      </label>
+                      <input
+                        type="number"
+                        step="0.00001"
+                        min="0.00001"
+                        value={priceMultiplier}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value);
+                          console.log('Price multiplier input changed:', e.target.value, '-> parsed:', value);
+                          setPriceMultiplier(value || 1);
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-gray-50 focus:bg-white transition-all duration-200"
+                        placeholder="1.00"
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        Çekilen fiyat bu çarpan ile çarpılarak malzeme fiyatı belirlenir
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={handleTest}
+                  disabled={isLoading}
+                  className="group w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-xl flex items-center justify-center"
+                >
+                  {isLoading ? (
+                    <>
+                      <ClockIcon className="h-5 w-5 mr-2 animate-spin" />
+                      Test Ediliyor...
+                    </>
+                  ) : (
+                    <>
+                      <BeakerIcon className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                      Test Et
+                    </>
+                  )}
+                </button>
+
+                {result && (result.success || (result.possible_prices && result.possible_prices.length > 0)) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      onClick={handleSaveUrl}
+                      disabled={!materialType || !selectedPrice}
+                      className={`group px-4 py-3 rounded-xl flex items-center justify-center transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100 shadow-lg hover:shadow-xl ${
+                        materialType && selectedPrice
+                          ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800' 
+                          : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      }`}
+                    >
+                      <PlusIcon className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                      {!materialType ? 'Malzeme Seçin' : !selectedPrice ? 'Fiyat Seçin' : 'Kaydet'}
+                    </button>
+                    {selectedPrice && (
+                      <button
+                        onClick={() => handleSetAsDefaultPriceFromResult()}
+                        className="group bg-gradient-to-r from-purple-600 to-purple-700 text-white px-4 py-3 rounded-xl hover:from-purple-700 hover:to-purple-800 flex items-center justify-center transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                      >
+                        <StarIcon className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200" />
+                        Varsayılan Fiyat
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Test Result */}
+          <div className="xl:col-span-2">
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mr-3">
+                  <DocumentTextIcon className="h-5 w-5 text-white" />
+                </div>
+                Test Sonucu
+              </h2>
+            
+            {result ? (
+              <div className="space-y-4">
+                {result.success ? (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                    <div className="flex items-center mb-2">
+                      <CheckIcon className="h-5 w-5 text-green-600 mr-2" />
+                      <span className="text-green-800 font-medium">Test Başarılı</span>
+                    </div>
+                    <div className="space-y-2 text-sm text-gray-800">
+                      <div><strong>Başlık:</strong> {result.data?.title}</div>
+                      <div><strong>Süre:</strong> {result.response_time_ms}ms</div>
+                    </div>
+                    {result.message && (
+                      <div className="mt-2 text-sm text-green-700">
+                        {result.message}
+                      </div>
+                    )}
+
+                    {/* Olası Fiyatlar Listesi */}
+                    {result.possible_prices && result.possible_prices.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">Bulunan Fiyatlar - Birini Seçin:</h4>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {result.possible_prices.map((priceOption, index) => (
+                            <div
+                              key={index}
+                              className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                selectedPrice?.selector === priceOption.selector && selectedPrice?.price === priceOption.price
+                                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                                  : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                              }`}
+                              onClick={() => setSelectedPrice(priceOption)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <div className={`w-3 h-3 rounded-full ${
+                                      selectedPrice?.selector === priceOption.selector && selectedPrice?.price === priceOption.price
+                                        ? 'bg-blue-500'
+                                        : 'bg-gray-300'
+                                    }`}></div>
+                                    <span className="font-semibold text-lg text-gray-900">₺{priceOption.price}</span>
+                                    <span className={`text-xs px-2 py-1 rounded ${
+                                      priceOption.source === 'provided' ? 'bg-blue-100 text-blue-800' :
+                                      priceOption.source === 'common' ? 'bg-green-100 text-green-800' :
+                                      priceOption.source === 'meta' ? 'bg-purple-100 text-purple-800' :
+                                      'bg-orange-100 text-orange-800'
+                                    }`}>
+                                      {priceOption.source === 'provided' ? 'Girilen' :
+                                       priceOption.source === 'common' ? 'Yaygın' :
+                                       priceOption.source === 'meta' ? 'Meta' : 'JSON-LD'}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 text-xs text-gray-600">
+                                    <div><strong>Selector:</strong> {priceOption.selector}</div>
+                                    <div><strong>Element Sayısı:</strong> {priceOption.elementCount}</div>
+                                    <div className="truncate"><strong>İçerik:</strong> {priceOption.textContent}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {materialType && selectedPrice && (
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <label className="text-sm text-gray-700">Çarpan:</label>
+                          <input
+                            type="number"
+                            step="0.00001"
+                            min="0.00001"
+                            value={priceMultiplier}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value);
+                              console.log('Price multiplier input changed:', e.target.value, '-> parsed:', value);
+                              setPriceMultiplier(value || 1);
+                            }}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="1.00"
+                          />
+                          <span className="text-xs text-gray-500">
+                            = ₺{(selectedPrice.price * priceMultiplier).toFixed(2)}
+                          </span>
+                        </div>
+                        <button
+                          onClick={handleSetAsDefaultPriceFromResult}
+                          className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 flex items-center"
+                        >
+                          <StarIcon className="h-3 w-3 mr-1" />
+                          Bu Fiyatı Varsayılan Yap
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                    <div className="flex items-center mb-2">
+                      <XMarkIcon className="h-5 w-5 text-red-600 mr-2" />
+                      <span className="text-red-800 font-medium">Test Başarısız</span>
+                    </div>
+                    <div className="text-sm text-red-700">
+                      <strong>Hata:</strong> {result.error || 'Bilinmeyen hata'}
+                    </div>
+
+                    {/* Başarısız durumda da olası fiyatları göster */}
+                    {result.possible_prices && result.possible_prices.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">Ancak şu fiyatlar bulundu - Birini seçebilirsiniz:</h4>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {result.possible_prices.map((priceOption, index) => (
+                            <div
+                              key={index}
+                              className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                                selectedPrice?.selector === priceOption.selector && selectedPrice?.price === priceOption.price
+                                  ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                                  : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                              }`}
+                              onClick={() => setSelectedPrice(priceOption)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <div className={`w-3 h-3 rounded-full ${
+                                      selectedPrice?.selector === priceOption.selector && selectedPrice?.price === priceOption.price
+                                        ? 'bg-blue-500'
+                                        : 'bg-gray-300'
+                                    }`}></div>
+                                    <span className="font-semibold text-lg text-gray-900">₺{priceOption.price}</span>
+                                    <span className={`text-xs px-2 py-1 rounded ${
+                                      priceOption.source === 'provided' ? 'bg-blue-100 text-blue-800' :
+                                      priceOption.source === 'common' ? 'bg-green-100 text-green-800' :
+                                      priceOption.source === 'meta' ? 'bg-purple-100 text-purple-800' :
+                                      'bg-orange-100 text-orange-800'
+                                    }`}>
+                                      {priceOption.source === 'provided' ? 'Girilen' :
+                                       priceOption.source === 'common' ? 'Yaygın' :
+                                       priceOption.source === 'meta' ? 'Meta' : 'JSON-LD'}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 text-xs text-gray-600">
+                                    <div><strong>Selector:</strong> {priceOption.selector}</div>
+                                    <div><strong>Element Sayısı:</strong> {priceOption.elementCount}</div>
+                                    <div className="truncate"><strong>İçerik:</strong> {priceOption.textContent}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {selectedPrice && (
+                          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div className="text-sm text-yellow-800">
+                              <strong>Seçilen Fiyat:</strong> ₺{selectedPrice.price} ({selectedPrice.selector})
+                            </div>
+                            <div className="text-xs text-yellow-600 mt-1">
+                              Bu fiyatı kullanarak kaydetmek için malzeme türünü seçin ve &quot;Kaydet&quot; butonuna basın.
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {result.html_preview && (
+                      <details className="mt-2">
+                        <summary className="text-xs text-gray-600 cursor-pointer">
+                          HTML Önizleme (İlk 1000 karakter)
+                        </summary>
+                        <pre className="mt-1 p-2 bg-gray-100 rounded text-xs overflow-auto max-h-32">
+                          {result.html_preview}
+                        </pre>
+                      </details>
+                    )}
+                    {result.debug_info && (
+                      <details className="mt-2">
+                        <summary className="text-xs text-gray-600 cursor-pointer">
+                          Debug Bilgileri
+                        </summary>
+                        <div className="mt-1 p-2 bg-gray-100 rounded text-xs">
+                          <div className="space-y-1">
+                            <div><strong>Toplam Element:</strong> {String(result.debug_info.totalElements)}</div>
+                            <div><strong>Fiyat Elementleri:</strong> {String(result.debug_info.priceElements)}</div>
+                            <div><strong>Meta Tag&apos;ler:</strong> {String(result.debug_info.metaTags)}</div>
+                            <div><strong>JSON-LD Script&apos;ler:</strong> {String(result.debug_info.jsonLdScripts)}</div>
+                            <div className="mt-2">
+                              <strong>Yaygın Selector&apos;lar:</strong>
+                              <div className="ml-2 text-xs">
+                                {result.debug_info.commonSelectors ? 'Mevcut' : 'Yok'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <DocumentTextIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p>Test sonuçları burada görünecek</p>
+                <p className="text-sm">URL ve CSS selector girip test edin</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Saved URLs */}
+        <div className="mt-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                  <DocumentTextIcon className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Kaydedilmiş URL&apos;ler</h2>
+                  <p className="text-sm text-indigo-100">Otomatik fiyat çekme ayarları ile yönetin</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleRunAutoScraping}
+                  disabled={isAutoScrapingRunning}
+                  className="bg-white bg-opacity-20 text-white px-4 py-2 rounded-xl hover:bg-opacity-30 disabled:opacity-50 flex items-center text-sm font-medium transition-all duration-200 transform hover:scale-105 border border-white border-opacity-30"
+                >
+                  {isAutoScrapingRunning ? (
+                    <>
+                      <ClockIcon className="h-4 w-4 mr-2 animate-spin" />
+                      Çekiliyor...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowPathIcon className="h-4 w-4 mr-2" />
+                      Şimdi Çek
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setShowSavedUrls(!showSavedUrls)}
+                  className="text-white hover:text-indigo-100 text-sm font-medium px-4 py-2 rounded-xl hover:bg-white hover:bg-opacity-10 transition-all duration-200"
+                >
+                  {showSavedUrls ? 'Gizle' : 'Göster'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {showSavedUrls && (
+            <div className="p-6">
+              {savedUrls.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                  {savedUrls.map((savedUrl) => (
+                    <div key={savedUrl.id} className="group relative bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200 hover:border-blue-300 overflow-hidden transform hover:-translate-y-1">
+                      {/* Header with gradient background */}
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-2 border-b border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                              <h3 className="font-semibold text-xs text-gray-900 truncate">
+                                {MATERIAL_NAMES[savedUrl.material_type]}
+                              </h3>
+                            </div>
+                            <div className="text-xs text-gray-500 truncate mt-1" title={savedUrl.url}>
+                              {new URL(savedUrl.url).hostname}
+                            </div>
+                          </div>
+                          <div className="flex space-x-1 flex-shrink-0 ml-2">
+                            <button
+                              onClick={() => handleLoadSavedUrl(savedUrl)}
+                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors duration-200"
+                              title="Düzenle"
+                            >
+                              <PencilIcon className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUrl(savedUrl.id)}
+                              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition-colors duration-200"
+                              title="Sil"
+                            >
+                              <TrashIcon className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="p-3 space-y-3">
+                      
+                        {/* Test Status */}
+                        <div>
+                        {savedUrl.test_result && savedUrl.test_result.success ? (
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-2">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <CheckIcon className="h-3 w-3 text-green-600" />
+                                  </div>
+                                  <div>
+                                    <div className="font-semibold text-green-800 text-xs">Başarılı</div>
+                                    <div className="text-lg font-bold text-green-900">
+                                      ₺{savedUrl.test_result.price}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleSetAsDefaultPrice(savedUrl)}
+                                className="w-full bg-green-600 text-white px-2 py-1 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center text-xs font-medium"
+                              >
+                                <StarIcon className="h-3 w-3 mr-1" />
+                                Varsayılan
+                              </button>
+                            </div>
+                        ) : (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-4 h-4 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <XMarkIcon className="h-3 w-3 text-red-600" />
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-red-800 text-xs">Başarısız</div>
+                                  <div className="text-xs text-red-600">Fiyat çekilemedi</div>
+                                </div>
+                              </div>
+                            </div>
+                        )}
+                        </div>
+
+                        {/* Selector Düzenleme */}
+                        <div className="bg-blue-50 rounded-lg p-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0"></div>
+                              <span className="font-semibold text-gray-800 text-xs">CSS Selector</span>
+                            </div>
+                            <button
+                              onClick={() => handleStartEditingSelector(savedUrl)}
+                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors duration-200"
+                              title="Selector Düzenle"
+                            >
+                              <PencilIcon className="h-3 w-3" />
+                            </button>
+                          </div>
+
+                          {editingSelector === savedUrl.id ? (
+                            <div className="space-y-2">
+                              <div>
+                                <textarea
+                                  value={editingSelectorValue}
+                                  onChange={(e) => setEditingSelectorValue(e.target.value)}
+                                  className="w-full px-2 py-1 border border-gray-300 rounded text-xs text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  rows={2}
+                                  placeholder=".price, #price, [data-price]..."
+                                />
+                              </div>
+                              <div className="flex space-x-1">
+                                <button
+                                  onClick={() => handleSaveSelector(savedUrl)}
+                                  className="flex-1 bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors duration-200 text-xs font-medium"
+                                >
+                                  Kaydet
+                                </button>
+                                <button
+                                  onClick={handleCancelEditingSelector}
+                                  className="flex-1 bg-gray-300 text-gray-700 px-2 py-1 rounded hover:bg-gray-400 transition-colors duration-200 text-xs font-medium"
+                                >
+                                  İptal
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-white rounded p-1 border border-gray-200">
+                              <div className="font-mono text-xs bg-gray-100 p-1 rounded border break-all text-gray-900">
+                                {savedUrl.selector}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Auto-scraping Section */}
+                        <div className="bg-gray-50 rounded-lg p-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-1.5 h-1.5 bg-purple-500 rounded-full flex-shrink-0"></div>
+                              <span className="font-semibold text-gray-800 text-xs">Otomatik Çekim</span>
+                            </div>
+                            <button
+                              onClick={() => handleToggleAutoScraping(savedUrl)}
+                              className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 flex items-center ${
+                                savedUrl.auto_scraping_enabled 
+                                  ? 'bg-green-100 text-green-800 hover:bg-green-200 border border-green-300' 
+                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300'
+                              }`}
+                            >
+                              {savedUrl.auto_scraping_enabled ? (
+                                <>
+                                  <CheckIcon className="h-3 w-3 mr-1" />
+                                  Aktif
+                                </>
+                              ) : (
+                                <>
+                                  <XMarkIcon className="h-3 w-3 mr-1" />
+                                  Pasif
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {savedUrl.auto_scraping_enabled && (
+                            <div className="mb-2">
+                              <div className="bg-white rounded p-1 border border-gray-200 text-center">
+                                <div className="text-xs text-gray-500">Çarpan</div>
+                                <div className="font-bold text-sm text-gray-900">
+                                  {savedUrl.price_multiplier || 1}x
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => handleRunManualScraping(savedUrl)}
+                              className="flex-1 bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center text-xs font-medium"
+                            >
+                              <ArrowPathIcon className="h-3 w-3 mr-1" />
+                              Çek
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newMultiplier = prompt('Yeni fiyat çarpanı (örn: 0.00083):', String(savedUrl.price_multiplier || 1));
+                                if (newMultiplier) {
+                                  handleUpdateAutoScrapingSettings(
+                                    savedUrl, 
+                                    savedUrl.auto_scraping_interval_hours || 24, 
+                                    parseFloat(newMultiplier)
+                                  );
+                                }
+                              }}
+                              className="bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700 transition-colors duration-200 flex items-center text-xs font-medium"
+                            >
+                              <Cog6ToothIcon className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <DocumentTextIcon className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Henüz kaydedilmiş URL yok</h3>
+                  <p className="text-gray-500 mb-4">Test yapıp URL&apos;leri kaydederek otomatik fiyat çekme özelliğini kullanmaya başlayın</p>
+                  <div className="flex items-center justify-center space-x-2 text-sm text-gray-400">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span>URL Test Et</span>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <span>Kaydet</span>
+                    <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                    <span>Otomatik Çek</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Test Geçmişi kaldırıldı - sadece Kaydedilmiş URL'ler kullanılıyor */}
+      </div>
+
+      {/* Log Panel */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <button
+          onClick={() => setShowLogs(!showLogs)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center text-sm font-medium shadow-lg"
+        >
+          <DocumentTextIcon className="h-4 w-4 mr-2" />
+          Log&apos;lar ({logs.length})
+        </button>
+      </div>
+
+      {/* Log Modal */}
+      {showLogs && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-96 flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">Sistem Log&apos;ları</h3>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={clearLogs}
+                  className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1 rounded"
+                >
+                  Temizle
+                </button>
+                <button
+                  onClick={() => setShowLogs(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {logs.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  Henüz log yok
+                </div>
+              ) : (
+                logs.map((log) => (
+                  <div
+                    key={log.id}
+                    className={`p-3 rounded-lg border-l-4 ${
+                      log.type === 'success' 
+                        ? 'bg-green-50 border-green-400' 
+                        : log.type === 'error'
+                        ? 'bg-red-50 border-red-400'
+                        : log.type === 'warning'
+                        ? 'bg-yellow-50 border-yellow-400'
+                        : 'bg-blue-50 border-blue-400'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className={`text-xs font-medium ${
+                            log.type === 'success' 
+                              ? 'text-green-800' 
+                              : log.type === 'error'
+                              ? 'text-red-800'
+                              : log.type === 'warning'
+                              ? 'text-yellow-800'
+                              : 'text-blue-800'
+                          }`}>
+                            {log.type.toUpperCase()}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {log.timestamp.toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-800 mt-1">{log.message}</p>
+                        {log.details && (
+                          <details className="mt-2">
+                            <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">
+                              Detaylar
+                            </summary>
+                            <pre className="text-xs text-gray-600 mt-1 bg-gray-100 p-2 rounded overflow-x-auto">
+                              {JSON.stringify(log.details, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          </div>
+        </div>
+      )}
+        </div>
+      )}
+    </AdminLayout>
+  );
+}
