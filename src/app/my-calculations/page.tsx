@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   CalendarIcon, 
-  CalculatorIcon,
   CurrencyDollarIcon,
   TrashIcon,
   MagnifyingGlassIcon,
@@ -35,22 +34,10 @@ export default function MyCalculationsPage() {
   const [sortBy, setSortBy] = useState('newest');
   const { user, loading: authLoading } = useAuth();
 
-  useEffect(() => {
-    if (!authLoading) {
-      if (user) {
-        fetchCalculations();
-      } else {
-        // Kullanıcı giriş yapmamışsa state'i temizle
-        setCalculations([]);
-        setIsLoading(false);
-        setError(null);
-      }
-    }
-  }, [user, authLoading]);
-
-  const fetchCalculations = async () => {
+  const fetchCalculations = useCallback(async () => {
     try {
       setIsLoading(true);
+      setError(null);
       const response = await fetch('/api/user/calculations');
       
       if (!response.ok) {
@@ -64,7 +51,20 @@ export default function MyCalculationsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (user) {
+        fetchCalculations();
+      } else {
+        // Kullanıcı giriş yapmamışsa state'i temizle
+        setCalculations([]);
+        setIsLoading(false);
+        setError(null);
+      }
+    }
+  }, [user, authLoading, fetchCalculations]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('tr-TR', {
@@ -146,7 +146,7 @@ export default function MyCalculationsPage() {
   }, [calculations, searchTerm, filterType, sortBy]);
 
 
-  const handleDeleteCalculation = async (id: string) => {
+  const handleDeleteCalculation = useCallback(async (id: string) => {
     if (!confirm('Bu hesaplamayı silmek istediğinizden emin misiniz?')) {
       return;
     }
@@ -169,9 +169,9 @@ export default function MyCalculationsPage() {
     } finally {
       setDeletingId(null);
     }
-  };
+  }, []);
 
-  const handleCopyToClipboard = async (calculation: CalculationHistory) => {
+  const handleCopyToClipboard = useCallback(async (calculation: CalculationHistory) => {
     const textContent = [
       `HESAPLAMA DETAYI`,
       `================`,
@@ -190,7 +190,7 @@ export default function MyCalculationsPage() {
       console.error('Panoya kopyalama hatası:', err);
       alert('Panoya kopyalama başarısız oldu.');
     }
-  };
+  }, []);
 
   // Kullanıcı giriş yapmamışsa
   if (!authLoading && !user) {
@@ -200,7 +200,11 @@ export default function MyCalculationsPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 max-w-md mx-auto">
-                <CalculatorIcon className="mx-auto h-12 w-12 text-blue-400 mb-4" />
+                <div className="mx-auto h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
                 <h3 className="text-lg font-medium text-blue-900 mb-2">
                   Giriş Yapmanız Gerekiyor
                 </h3>
@@ -264,24 +268,13 @@ export default function MyCalculationsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  Hesaplama Geçmişim
-                </h1>
-                <p className="mt-2 text-lg text-gray-600">
-                  Tüm hesaplamalarınızı yönetin ve analiz edin
-                </p>
-              </div>
-              <div className="mt-4 sm:mt-0">
-                <Link
-                  href="/calculator"
-                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform hover:scale-105 transition-all duration-200"
-                >
-                  <CalculatorIcon className="h-5 w-5 mr-2" />
-                  Yeni Hesaplama
-                </Link>
-              </div>
+            <div className="text-center">
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Hesaplama Geçmişim
+              </h1>
+              <p className="mt-2 text-lg text-gray-600">
+                Tüm hesaplamalarınızı yönetin ve analiz edin
+              </p>
             </div>
           </div>
 
@@ -342,7 +335,9 @@ export default function MyCalculationsPage() {
             <div className="text-center py-16">
               <div className="bg-white rounded-2xl shadow-lg p-12 max-w-md mx-auto">
                 <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <CalculatorIcon className="h-10 w-10 text-gray-400" />
+                  <svg className="h-10 w-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   {calculations.length === 0 ? 'Henüz hesaplama yok' : 'Arama sonucu bulunamadı'}
@@ -358,7 +353,9 @@ export default function MyCalculationsPage() {
                     href="/calculator"
                     className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
-                    <CalculatorIcon className="h-5 w-5 mr-2" />
+                    <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
                     Hesaplama Yap
                   </Link>
                   {calculations.length > 0 && (
