@@ -19,16 +19,6 @@ export default function CalculatorPage() {
     setResults([]);
   };
 
-  const handleSave = async (name: string) => {
-    if (!user) {
-      alert('Hesaplamayı kaydetmek için giriş yapmalısınız.');
-      return;
-    }
-
-    // TODO: Implement save functionality with Supabase
-    console.log('Saving calculation:', { name, results, userId: user.id });
-    alert(`"${name}" adlı hesaplama kaydedildi! (Henüz backend entegrasyonu yapılmadı)`);
-  };
 
 
 
@@ -58,7 +48,6 @@ export default function CalculatorPage() {
           <div>
             <ResultsPanel
               results={results}
-              onSave={user ? handleSave : undefined}
               onClear={handleClear}
             />
           </div>

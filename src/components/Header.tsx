@@ -7,13 +7,25 @@ import { useAuth } from '@/lib/auth-context';
 export default function Header() {
   const { user, loading, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+    if (!isMobileMenuOpen) {
+      setIsMobileMenuOpen(true);
+      setIsAnimating(true);
+    } else {
+      setIsAnimating(false);
+      setTimeout(() => {
+        setIsMobileMenuOpen(false);
+      }, 500); // Animation duration
+    }
   };
 
   const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
+    setIsAnimating(false);
+    setTimeout(() => {
+      setIsMobileMenuOpen(false);
+    }, 500);
   };
 
   return (
@@ -117,31 +129,27 @@ export default function Header() {
               type="button"
               onClick={toggleMobileMenu}
               data-hamburger
-              className="text-gray-700 hover:text-indigo-600 focus:outline-none focus:text-indigo-600 p-2"
+              className="text-gray-700 hover:text-indigo-600 focus:outline-none focus:text-indigo-600 p-2 transition-colors duration-200"
               aria-label="Toggle mobile menu"
             >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                {isMobileMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                )}
-              </svg>
+              <div className="relative w-6 h-6">
+                {/* Hamburger lines with smooth transitions */}
+                <span 
+                  className={`absolute top-1 left-0 w-6 h-0.5 bg-current transition-all duration-300 ease-in-out ${
+                    isMobileMenuOpen ? 'rotate-45 translate-y-2' : 'translate-y-0'
+                  }`}
+                />
+                <span 
+                  className={`absolute top-3 left-0 w-6 h-0.5 bg-current transition-all duration-300 ease-in-out ${
+                    isMobileMenuOpen ? 'opacity-0' : 'opacity-100'
+                  }`}
+                />
+                <span 
+                  className={`absolute top-5 left-0 w-6 h-0.5 bg-current transition-all duration-300 ease-in-out ${
+                    isMobileMenuOpen ? '-rotate-45 -translate-y-2' : 'translate-y-0'
+                  }`}
+                />
+              </div>
             </button>
           </div>
         </div>
@@ -149,14 +157,18 @@ export default function Header() {
         {/* Mobile Sidebar */}
         {isMobileMenuOpen && (
           <div className="lg:hidden fixed inset-0 z-50">
-            {/* Backdrop with blur effect */}
+            {/* Backdrop with blur effect and fade animation */}
             <div 
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm"
+              className={`fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-500 ease-out ${
+                isMobileMenuOpen ? 'opacity-100' : 'opacity-0'
+              }`}
               onClick={closeMobileMenu}
             />
             
             {/* Sidebar with slide animation */}
-            <div className="fixed inset-y-0 left-0 w-80 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col">
+            <div className={`fixed inset-y-0 left-0 w-80 bg-white shadow-2xl transform transition-all duration-500 ease-out flex flex-col ${
+              isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}>
               {/* Header with close button */}
               <div className="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0">
                 <div className="flex items-center space-x-3">
@@ -207,7 +219,10 @@ export default function Header() {
                   <div className="space-y-2">
                     <Link
                       href="/"
-                      className="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-700 transition-all duration-200"
+                      className={`group flex items-center px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-700 transition-all duration-200 transform ${
+                        isAnimating ? 'animate-slide-in-left' : 'opacity-0 -translate-x-full'
+                      }`}
+                      style={{ animationDelay: isAnimating ? '0.1s' : '0s' }}
                       onClick={closeMobileMenu}
                     >
                       <div className="flex items-center justify-center w-8 h-8 mr-3 rounded-lg bg-gray-100 group-hover:bg-indigo-100 transition-colors">
@@ -219,7 +234,10 @@ export default function Header() {
                     </Link>
                     <Link
                       href="/calculator"
-                      className="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-700 transition-all duration-200"
+                      className={`group flex items-center px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-700 transition-all duration-200 transform ${
+                        isAnimating ? 'animate-slide-in-left' : 'opacity-0 -translate-x-full'
+                      }`}
+                      style={{ animationDelay: isAnimating ? '0.2s' : '0s' }}
                       onClick={closeMobileMenu}
                     >
                       <div className="flex items-center justify-center w-8 h-8 mr-3 rounded-lg bg-gray-100 group-hover:bg-indigo-100 transition-colors">
@@ -231,7 +249,10 @@ export default function Header() {
                     </Link>
                     <Link
                       href="/my-calculations"
-                      className="group flex items-center px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-700 transition-all duration-200"
+                      className={`group flex items-center px-4 py-3 text-sm font-medium text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 hover:text-indigo-700 transition-all duration-200 transform ${
+                        isAnimating ? 'animate-slide-in-left' : 'opacity-0 -translate-x-full'
+                      }`}
+                      style={{ animationDelay: isAnimating ? '0.3s' : '0s' }}
                       onClick={closeMobileMenu}
                     >
                       <div className="flex items-center justify-center w-8 h-8 mr-3 rounded-lg bg-gray-100 group-hover:bg-indigo-100 transition-colors">
@@ -249,14 +270,20 @@ export default function Header() {
                   <div className="px-4 py-4 border-t border-gray-200 space-y-2">
                     <Link
                       href="/login"
-                      className="block w-full px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 transition-colors"
+                      className={`block w-full px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100 transition-all duration-200 transform ${
+                        isAnimating ? 'animate-slide-in-left' : 'opacity-0 -translate-x-full'
+                      }`}
+                      style={{ animationDelay: isAnimating ? '0.4s' : '0s' }}
                       onClick={closeMobileMenu}
                     >
                       Giriş Yap
                     </Link>
                     <Link
                       href="/register"
-                      className="block w-full px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors"
+                      className={`block w-full px-3 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-all duration-200 transform ${
+                        isAnimating ? 'animate-slide-in-left' : 'opacity-0 -translate-x-full'
+                      }`}
+                      style={{ animationDelay: isAnimating ? '0.5s' : '0s' }}
                       onClick={closeMobileMenu}
                     >
                       Kayıt Ol
@@ -272,7 +299,10 @@ export default function Header() {
                         signOut();
                         closeMobileMenu();
                       }}
-                      className="group flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 rounded-xl hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-red-700 transition-all duration-200"
+                      className={`group flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 rounded-xl hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 hover:text-red-700 transition-all duration-200 transform ${
+                        isAnimating ? 'animate-slide-in-left' : 'opacity-0 -translate-x-full'
+                      }`}
+                      style={{ animationDelay: isAnimating ? '0.4s' : '0s' }}
                     >
                       <div className="flex items-center justify-center w-8 h-8 mr-3 rounded-lg bg-red-100 group-hover:bg-red-200 transition-colors">
                         <svg className="h-4 w-4 text-red-600 group-hover:text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
