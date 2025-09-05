@@ -1,0 +1,26 @@
+﻿=== SUPABASE YEDEK ÖZET RAPORU ===
+Tarih: 09/05/2025 15:12:41
+Çıktı Dizini: supabase_backup_20250905_151053
+
+Yedeklenen Dosyalar:
+- schemas.sql: Şema yapıları (96.43 KB)
+- data.sql: Tablo verileri (398.04 KB)
+- rls_policies.sql: RLS politikaları (4.71 KB)
+- functions.sql: Fonksiyonlar (96.43 KB)
+- extensions.sql: Extension'lar (0.39 KB)
+- indexes.sql: Index'ler
+- views.sql: View'lar
+- triggers.sql: Trigger'lar (0 KB - boş)
+
+Kullanım:
+1. Yeni bir Supabase projesi oluşturun
+2. Bu dosyaları sırasıyla çalıştırın:
+   psql -d "YENİ_DATABASE_URL" -f schemas.sql
+   psql -d "YENİ_DATABASE_URL" -f functions.sql
+   psql -d "YENİ_DATABASE_URL" -f extensions.sql
+   psql -d "YENİ_DATABASE_URL" -f indexes.sql
+   psql -d "YENİ_DATABASE_URL" -f views.sql
+   psql -d "YENİ_DATABASE_URL" -f rls_policies.sql
+   psql -d "YENİ_DATABASE_URL" -f data.sql
+
+Not: Kullanıcı dosyasını çalıştırmadan önce gerekli izinleri kontrol edin.
