@@ -34,9 +34,11 @@ export default function MyCalculationsPage() {
   const [sortBy, setSortBy] = useState('newest');
   const { user, loading: authLoading } = useAuth();
 
-  const fetchCalculations = async () => {
+  const fetchCalculations = async (showLoading = true) => {
     try {
-      setIsLoading(true);
+      if (showLoading) {
+        setIsLoading(true);
+      }
       setError(null);
       const response = await fetch('/api/user/calculations');
       
@@ -49,14 +51,16 @@ export default function MyCalculationsPage() {
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Bilinmeyen hata');
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        fetchCalculations();
+        fetchCalculations(false); // İlk yüklemede loading gösterme
       } else {
         // Kullanıcı giriş yapmamışsa state'i temizle
         setCalculations([]);
@@ -249,7 +253,7 @@ export default function MyCalculationsPage() {
               <div className="bg-red-50 border border-red-200 rounded-md p-4">
                 <p className="text-red-800">Hata: {error}</p>
                 <button
-                  onClick={fetchCalculations}
+                  onClick={() => fetchCalculations(true)}
                   className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
                 >
                   Tekrar Dene
