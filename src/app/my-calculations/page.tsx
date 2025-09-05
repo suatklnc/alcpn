@@ -1,8 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { CalendarIcon, CalculatorIcon, CurrencyDollarIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { 
+  CalendarIcon, 
+  CalculatorIcon, 
+  CurrencyDollarIcon, 
+  TrashIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  ClipboardDocumentIcon,
+  ChartBarIcon,
+  ClockIcon,
+  EyeIcon
+} from '@heroicons/react/24/outline';
 import { useAuth } from '@/lib/auth-context';
 import Layout from '@/components/Layout';
 
@@ -21,6 +32,9 @@ export default function MyCalculationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
@@ -91,6 +105,66 @@ export default function MyCalculationsPage() {
     return labels[subType] || subType;
   };
 
+  // Filtrelenmiş ve sıralanmış hesaplamalar
+  const filteredCalculations = useMemo(() => {
+    let filtered = calculations;
+
+    // Arama filtresi
+    if (searchTerm) {
+      filtered = filtered.filter(calc => 
+        getJobTypeLabel(calc.job_type).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getSubTypeLabel(calc.sub_type).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        calc.area.toString().includes(searchTerm) ||
+        formatCurrency(calc.total_cost).includes(searchTerm)
+      );
+    }
+
+    // Tip filtresi
+    if (filterType !== 'all') {
+      filtered = filtered.filter(calc => calc.job_type === filterType);
+    }
+
+    // Sıralama
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'highest':
+          return b.total_cost - a.total_cost;
+        case 'lowest':
+          return a.total_cost - b.total_cost;
+        case 'area_high':
+          return b.area - a.area;
+        case 'area_low':
+          return a.area - b.area;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [calculations, searchTerm, filterType, sortBy]);
+
+  // İstatistikler
+  const stats = useMemo(() => {
+    if (calculations.length === 0) return null;
+    
+    const totalCost = calculations.reduce((sum, calc) => sum + calc.total_cost, 0);
+    const averageCost = totalCost / calculations.length;
+    const totalArea = calculations.reduce((sum, calc) => sum + calc.area, 0);
+    const averageArea = totalArea / calculations.length;
+
+    return {
+      totalCalculations: calculations.length,
+      totalCost,
+      averageCost,
+      totalArea,
+      averageArea
+    };
+  }, [calculations]);
+
   const handleDeleteCalculation = async (id: string) => {
     if (!confirm('Bu hesaplamayı silmek istediğinizden emin misiniz?')) {
       return;
@@ -113,6 +187,27 @@ export default function MyCalculationsPage() {
       alert(error instanceof Error ? error.message : 'Hesaplama silinemedi');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleCopyToClipboard = async (calculation: CalculationHistory) => {
+    const textContent = [
+      `HESAPLAMA DETAYI`,
+      `================`,
+      `İş Türü: ${getJobTypeLabel(calculation.job_type)}`,
+      `Alt Tür: ${getSubTypeLabel(calculation.sub_type)}`,
+      `Alan: ${calculation.area} m²`,
+      `Toplam Maliyet: ${formatCurrency(calculation.total_cost)}`,
+      `Tarih: ${formatDate(calculation.created_at)}`,
+      `================`
+    ].join('\n');
+
+    try {
+      await navigator.clipboard.writeText(textContent);
+      alert('Hesaplama detayları panoya kopyalandı!');
+    } catch (err) {
+      console.error('Panoya kopyalama hatası:', err);
+      alert('Panoya kopyalama başarısız oldu.');
     }
   };
 
@@ -184,119 +279,278 @@ export default function MyCalculationsPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Hesaplama Geçmişim</h1>
-          <p className="mt-2 text-sm sm:text-base text-gray-600">
-            Daha önce yaptığınız tüm hesaplamaları görüntüleyin
-          </p>
-        </div>
-
-        {/* New Calculation Button */}
-        <div className="mb-4 sm:mb-6">
-          <Link
-            href="/calculator"
-            className="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-xs sm:text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <CalculatorIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            Yeni Hesaplama
-          </Link>
-        </div>
-
-        {/* Calculations List */}
-        {calculations.length === 0 ? (
-          <div className="text-center py-12">
-            <CalculatorIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Henüz hesaplama yok</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              İlk hesaplamanızı yapmak için calculator sayfasına gidin.
-            </p>
-            <div className="mt-6">
-              <Link
-                href="/calculator"
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200"
-              >
-                <CalculatorIcon className="h-4 w-4 mr-2" />
-                Hesaplama Yap
-              </Link>
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  Hesaplama Geçmişim
+                </h1>
+                <p className="mt-2 text-lg text-gray-600">
+                  Tüm hesaplamalarınızı yönetin ve analiz edin
+                </p>
+              </div>
+              <div className="mt-4 sm:mt-0">
+                <Link
+                  href="/calculator"
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transform hover:scale-105 transition-all duration-200"
+                >
+                  <CalculatorIcon className="h-5 w-5 mr-2" />
+                  Yeni Hesaplama
+                </Link>
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {calculations.map((calculation) => (
-              <div
-                key={calculation.id}
-                className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
-              >
-                <div className="p-4 sm:p-6">
-                  {/* Header */}
-                  <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    <div className="flex items-center min-w-0 flex-1">
-                      <CalculatorIcon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mr-2 flex-shrink-0" />
-                      <span className="text-xs sm:text-sm font-medium text-gray-900 truncate">
-                        {getJobTypeLabel(calculation.job_type)}
-                      </span>
-                    </div>
-                    <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2 flex-shrink-0">
-                      {getSubTypeLabel(calculation.sub_type)}
-                    </span>
-                  </div>
 
-                  {/* Details */}
-                  <div className="space-y-2 sm:space-y-3">
-                    <div className="flex items-center text-xs sm:text-sm text-gray-600">
-                      <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-2 flex-shrink-0" />
-                      <span className="truncate">{formatDate(calculation.created_at)}</span>
-                    </div>
-                    
-                    <div className="flex items-center text-xs sm:text-sm text-gray-600">
-                      <span className="mr-2">Alan:</span>
-                      <span className="font-medium">{calculation.area} m²</span>
-                    </div>
-
-                    <div className="flex items-center text-xs sm:text-sm text-gray-600">
-                      <CurrencyDollarIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-2 flex-shrink-0" />
-                      <span className="mr-2">Toplam:</span>
-                      <span className="font-medium text-green-600">
-                        {formatCurrency(calculation.total_cost)}
-                      </span>
+          {/* İstatistik Kartları */}
+          {stats && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                      <ChartBarIcon className="h-6 w-6 text-white" />
                     </div>
                   </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Toplam Hesaplama</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.totalCalculations}</p>
+                  </div>
+                </div>
+              </div>
 
-                  {/* Actions */}
-                  <div className="mt-4 sm:mt-6 space-y-2">
-                    <Link
-                      href={`/calculation/${calculation.id}`}
-                      className="w-full inline-flex justify-center items-center px-3 sm:px-4 py-2 border border-gray-300 shadow-sm text-xs sm:text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                      <CurrencyDollarIcon className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Toplam Maliyet</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalCost)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                      <CalculatorIcon className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Ortalama Maliyet</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.averageCost)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+                      <ClockIcon className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-500">Toplam Alan</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.totalArea.toFixed(1)} m²</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Filtreleme ve Arama */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Arama */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Hesaplama ara..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Tip Filtresi */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FunnelIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="all">Tüm İş Türleri</option>
+                  <option value="tavan">Tavan</option>
+                  <option value="duvar">Duvar</option>
+                </select>
+              </div>
+
+              {/* Sıralama */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="block w-full px-3 py-3 border border-gray-300 rounded-xl leading-5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="newest">En Yeni</option>
+                  <option value="oldest">En Eski</option>
+                  <option value="highest">En Yüksek Maliyet</option>
+                  <option value="lowest">En Düşük Maliyet</option>
+                  <option value="area_high">En Büyük Alan</option>
+                  <option value="area_low">En Küçük Alan</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Calculations List */}
+          {filteredCalculations.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="bg-white rounded-2xl shadow-lg p-12 max-w-md mx-auto">
+                <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CalculatorIcon className="h-10 w-10 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {calculations.length === 0 ? 'Henüz hesaplama yok' : 'Arama sonucu bulunamadı'}
+                </h3>
+                <p className="text-gray-500 mb-6">
+                  {calculations.length === 0 
+                    ? 'İlk hesaplamanızı yapmak için calculator sayfasına gidin.'
+                    : 'Farklı arama terimleri deneyin veya filtreleri temizleyin.'
+                  }
+                </p>
+                <div className="space-y-3">
+                  <Link
+                    href="/calculator"
+                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <CalculatorIcon className="h-5 w-5 mr-2" />
+                    Hesaplama Yap
+                  </Link>
+                  {calculations.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSearchTerm('');
+                        setFilterType('all');
+                        setSortBy('newest');
+                      }}
+                      className="block mx-auto px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
                     >
-                      Detayları Görüntüle
-                    </Link>
-                    
+                      Filtreleri Temizle
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredCalculations.map((calculation) => (
+                <div
+                  key={calculation.id}
+                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 overflow-hidden group"
+                >
+                  {/* Header with gradient */}
+                  <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-3">
+                          <CalculatorIcon className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold">
+                            {getJobTypeLabel(calculation.job_type)}
+                          </h3>
+                          <p className="text-indigo-100 text-sm">
+                            {getSubTypeLabel(calculation.sub_type)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold">
+                          {formatCurrency(calculation.total_cost)}
+                        </p>
+                        <p className="text-indigo-100 text-sm">Toplam Maliyet</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-6">
+                    {/* Details */}
+                    <div className="space-y-4 mb-6">
+                      <div className="flex items-center text-gray-600">
+                        <CalendarIcon className="h-5 w-5 mr-3 text-gray-400" />
+                        <span className="text-sm">{formatDate(calculation.created_at)}</span>
+                      </div>
+                      
+                      <div className="flex items-center text-gray-600">
+                        <div className="w-5 h-5 mr-3 flex items-center justify-center">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                        </div>
+                        <span className="text-sm">Alan: <span className="font-semibold text-gray-900">{calculation.area} m²</span></span>
+                      </div>
+
+                      <div className="flex items-center text-gray-600">
+                        <CurrencyDollarIcon className="h-5 w-5 mr-3 text-gray-400" />
+                        <span className="text-sm">Birim Maliyet: <span className="font-semibold text-gray-900">{formatCurrency(calculation.total_cost / calculation.area)}/m²</span></span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Link
+                        href={`/calculation/${calculation.id}`}
+                        className="flex items-center justify-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors duration-200 group"
+                      >
+                        <EyeIcon className="h-4 w-4 mr-2" />
+                        Detay
+                      </Link>
+                      
+                      <button
+                        onClick={() => handleCopyToClipboard(calculation)}
+                        className="flex items-center justify-center px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-xl text-sm font-medium transition-colors duration-200 group"
+                      >
+                        <ClipboardDocumentIcon className="h-4 w-4 mr-2" />
+                        Kopyala
+                      </button>
+                    </div>
+
+                    {/* Delete Button */}
                     <button
                       onClick={() => handleDeleteCalculation(calculation.id)}
                       disabled={deletingId === calculation.id}
-                      className="w-full inline-flex justify-center items-center px-3 sm:px-4 py-2 border border-red-300 shadow-sm text-xs sm:text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full mt-3 flex items-center justify-center px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
                     >
                       {deletingId === calculation.id ? (
                         <>
-                          <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-red-600 mr-2"></div>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2"></div>
                           Siliniyor...
                         </>
                       ) : (
                         <>
-                          <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                          <TrashIcon className="h-4 w-4 mr-2" />
                           Sil
                         </>
                       )}
                     </button>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Layout>
