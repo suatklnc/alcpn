@@ -4,14 +4,6 @@ import { withSentryConfig } from '@sentry/nextjs';
 const nextConfig: NextConfig = {
   /* config options here */
   serverExternalPackages: ['@sentry/nextjs'],
-  // Disable Vercel Analytics for non-Vercel deployments
-  experimental: {
-    instrumentationHook: false,
-  },
-  // Disable Vercel Analytics when not on Vercel
-  ...(process.env.VERCEL !== '1' && {
-    analyticsId: false,
-  }),
 };
 
 // Sentry configuration
