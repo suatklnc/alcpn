@@ -14,13 +14,13 @@ export async function GET() {
 
     const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Sadece 1 URL çek - en eski olanı
+    // Tüm hazır URL'leri çek (maksimum 10 ile sınırla)
     const { data: urlsToScrape, error: fetchError } = await supabaseService
       .from('custom_scraping_urls')
       .select('*')
       .lte('next_auto_scrape_at', new Date().toISOString())
       .order('next_auto_scrape_at', { ascending: true })
-      .limit(1);
+      .limit(10);
 
     if (fetchError) {
       console.error('Error fetching URLs for sync scraping:', fetchError);
@@ -41,88 +41,89 @@ export async function GET() {
       });
     }
 
-    const urlData = urlsToScrape[0];
-    console.log(`Processing URL: ${urlData.material_type} - ${urlData.url}`);
+    console.log(`Processing ${urlsToScrape.length} URLs for sync scraping`);
 
-    // Scraping yap
-    const scrapingResult = await performSimpleScraping(
-      urlData.url, 
-      urlData.selector, 
-      urlData.material_type
-    );
+    const results = [];
+    let successCount = 0;
+    let errorCount = 0;
 
-    console.log(`Scraping result for ${urlData.material_type}:`, scrapingResult);
+    // Tüm URL'leri işle
+    for (const urlData of urlsToScrape) {
+      console.log(`Processing URL: ${urlData.material_type} - ${urlData.url}`);
 
-    // Scraping history'yi kaydet
-    const { error: historyError } = await supabaseService
-      .from('scraping_history')
-      .insert({
-        url_id: urlData.id,
-        material_type: urlData.material_type,
-        url: urlData.url,
-        selector: urlData.selector,
-        price: scrapingResult.data?.price || null,
-        title: scrapingResult.data?.title || null,
-        availability: scrapingResult.data?.availability || null,
-        image_url: scrapingResult.data?.image || null,
-        success: scrapingResult.success,
-        error_message: scrapingResult.error || null,
-        response_time_ms: 0,
-        scraped_at: new Date().toISOString(),
-      });
+      // Scraping yap
+      const scrapingResult = await performSimpleScraping(
+        urlData.url, 
+        urlData.selector, 
+        urlData.material_type
+      );
 
-    if (historyError) {
-      console.error('Error saving scraping history:', historyError);
-    }
+      console.log(`Scraping result for ${urlData.material_type}:`, scrapingResult);
 
-    // Başarılı ise malzeme fiyatını güncelle
-    if (scrapingResult.success && scrapingResult.data?.price) {
-      const finalPrice = (typeof scrapingResult.data.price === 'number' ? 
-        scrapingResult.data.price * (urlData.price_multiplier || 1) : null);
-      
-      console.log(`Updating material price for ${urlData.material_type}: ${finalPrice}`);
-      
-      try {
-        const { error: priceUpdateError } = await supabaseService
-          .from('material_prices')
-          .upsert({
-            material_type: urlData.material_type,
-            unit_price: finalPrice,
-            updated_at: new Date().toISOString(),
-          }, {
-            onConflict: 'material_type'
-          });
+      // Scraping history'yi kaydet
+      const { error: historyError } = await supabaseService
+        .from('scraping_history')
+        .insert({
+          url_id: urlData.id,
+          material_type: urlData.material_type,
+          url: urlData.url,
+          selector: urlData.selector,
+          price: scrapingResult.data?.price || null,
+          title: scrapingResult.data?.title || null,
+          availability: scrapingResult.data?.availability || null,
+          image_url: scrapingResult.data?.image || null,
+          success: scrapingResult.success,
+          error_message: scrapingResult.error || null,
+          response_time_ms: 0,
+          scraped_at: new Date().toISOString(),
+        });
 
-        if (priceUpdateError) {
-          console.error('Error updating material price:', priceUpdateError);
-        } else {
-          console.log('Material price updated successfully');
-        }
-      } catch (error) {
-        console.error('Error updating material price:', error);
+      if (historyError) {
+        console.error('Error saving scraping history:', historyError);
       }
-    }
 
-    // next_auto_scrape_at'ı güncelle
-    const nextScrapeTime = new Date();
-    nextScrapeTime.setHours(nextScrapeTime.getHours() + (urlData.auto_scraping_interval_hours || 24));
-    
-    await supabaseService
-      .from('custom_scraping_urls')
-      .update({
-        last_auto_scraped_at: new Date().toISOString(),
-        next_auto_scrape_at: nextScrapeTime.toISOString()
-      })
-      .eq('id', urlData.id);
+      // Başarılı ise malzeme fiyatını güncelle
+      if (scrapingResult.success && scrapingResult.data?.price) {
+        const finalPrice = (typeof scrapingResult.data.price === 'number' ? 
+          scrapingResult.data.price * (urlData.price_multiplier || 1) : null);
+        
+        console.log(`Updating material price for ${urlData.material_type}: ${finalPrice}`);
+        
+        try {
+          const { error: priceUpdateError } = await supabaseService
+            .from('material_prices')
+            .upsert({
+              material_type: urlData.material_type,
+              unit_price: finalPrice,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'material_type'
+            });
 
-    console.log(`Sync scraping completed for ${urlData.material_type}`);
+          if (priceUpdateError) {
+            console.error('Error updating material price:', priceUpdateError);
+          } else {
+            console.log('Material price updated successfully');
+          }
+        } catch (error) {
+          console.error('Error updating material price:', error);
+        }
+      }
 
-    return NextResponse.json({
-      message: 'Sync scraping completed',
-      scraped_count: 1,
-      success_count: scrapingResult.success ? 1 : 0,
-      error_count: scrapingResult.success ? 0 : 1,
-      results: [{
+      // next_auto_scrape_at'ı güncelle
+      const nextScrapeTime = new Date();
+      nextScrapeTime.setHours(nextScrapeTime.getHours() + (urlData.auto_scraping_interval_hours || 24));
+      
+      await supabaseService
+        .from('custom_scraping_urls')
+        .update({
+          last_auto_scraped_at: new Date().toISOString(),
+          next_auto_scrape_at: nextScrapeTime.toISOString()
+        })
+        .eq('id', urlData.id);
+
+      // Sonuçları topla
+      results.push({
         url_id: urlData.id,
         material_type: urlData.material_type,
         url: urlData.url,
@@ -131,7 +132,26 @@ export async function GET() {
         price: scrapingResult.data?.price || null,
         error: scrapingResult.error || null,
         response_time_ms: 0
-      }],
+      });
+
+      if (scrapingResult.success) {
+        successCount++;
+      } else {
+        errorCount++;
+      }
+
+      // Rate limiting için kısa bekleme
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    console.log(`Sync scraping completed: ${successCount} successful, ${errorCount} failed`);
+
+    return NextResponse.json({
+      message: 'Sync scraping completed',
+      scraped_count: urlsToScrape.length,
+      success_count: successCount,
+      error_count: errorCount,
+      results: results,
       timestamp: new Date().toISOString()
     });
 
