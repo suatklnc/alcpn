@@ -43,8 +43,6 @@ async function processSimpleScraping() {
     const { data: urlsToScrape, error: fetchError } = await supabaseService
       .from('custom_scraping_urls')
       .select('*')
-      .eq('auto_scraping_enabled', true)
-      .eq('is_active', true)
       .lte('next_auto_scrape_at', new Date().toISOString())
       .order('next_auto_scrape_at', { ascending: true })
       .limit(1); // Sadece 1 URL
