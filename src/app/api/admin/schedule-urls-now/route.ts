@@ -9,14 +9,14 @@ export async function GET() {
     // Service role client oluştur
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Tüm aktif URL'leri hemen çekmeye hazır hale getir
+    // Tüm URL'leri hemen çekmeye hazır hale getir ve otomatik çekimi aktif et
     const { data, error } = await supabase
       .from('custom_scraping_urls')
       .update({ 
-        next_auto_scrape_at: new Date().toISOString() // Şu anki zaman
+        next_auto_scrape_at: new Date().toISOString(), // Şu anki zaman
+        auto_scraping_enabled: true, // Otomatik çekimi aktif et
+        is_active: true // Aktif et
       })
-      .eq('auto_scraping_enabled', true)
-      .eq('is_active', true)
       .select('id, url, material_type, next_auto_scrape_at');
 
     if (error) {
