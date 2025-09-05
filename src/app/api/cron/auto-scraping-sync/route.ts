@@ -135,11 +135,11 @@ export async function GET() {
       timestamp: new Date().toISOString()
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Sync cron job error:', error);
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
@@ -174,20 +174,23 @@ async function performSimpleScraping(url: string, selector: string, materialType
     
     if (selector === 'JSON-LD') {
       // JSON-LD script'lerini bul
-      const jsonLdRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>(.*?)<\/script>/gs;
-      const jsonLdMatches = [...html.matchAll(jsonLdRegex)];
+      const jsonLdRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>(.*?)<\/script>/g;
+      const jsonLdMatches = html.match(jsonLdRegex);
       
-      for (const match of jsonLdMatches) {
-        try {
-          const jsonData = JSON.parse(match[1]);
+      if (jsonLdMatches) {
+        for (const match of jsonLdMatches) {
+          try {
+            const scriptContent = match.replace(/<script[^>]*>/, '').replace(/<\/script>/, '');
+            const jsonData = JSON.parse(scriptContent);
           if (jsonData.offers && jsonData.offers.price) {
             price = parseFloat(jsonData.offers.price);
             console.log(`Found JSON-LD price for ${materialType}: ${price}`);
             break;
           }
-        } catch (e) {
+        } catch {
           // JSON parse hatası, devam et
         }
+      }
       }
     } else {
       // CSS selector ile fiyat çıkarma (basit regex)
@@ -213,12 +216,12 @@ async function performSimpleScraping(url: string, selector: string, materialType
       error: price === null ? 'Price not found' : null
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Scraping error for ${materialType}:`, error);
     return {
       success: false,
       data: null,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }
